@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from "react";
-import VoiceInput from "../components/VoiceInput";
-import QuickActions from "../components/QuickActions";
-import MessageBubble from "../components/MessageBubble";
-import Header from "../components/Header";
+import VoiceInput from "./components/VoiceInput";
+import QuickActions from "./components/QuickActions";
+import MessageBubble from "./components/MessageBubble";
+import Header from "./components/Header";
+import TextSummarizer from "./components/TextSummarizer";
 
 function App() {
+  const [showSummarizer, setShowSummarizer] = useState(false);
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState<
     Array<{ type: "user" | "ai"; content: string }>
@@ -18,6 +20,16 @@ function App() {
   });
   const [isListening, setIsListening] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Function to adjust textarea height based on content
+  const adjustTextareaHeight = () => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = "auto";
+      textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
+    }
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -34,7 +46,12 @@ function App() {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, showSummarizer]);
+
+  // Adjust textarea height when message changes
+  useEffect(() => {
+    adjustTextareaHeight();
+  }, [message]);
 
   const handleKeySubmit = (key: string) => {
     localStorage.setItem("openai_api_key", key);
@@ -83,6 +100,49 @@ function App() {
     }
   };
 
+  // New function to handle summarization
+  const handleSummarize = async (text: string, source: string) => {
+    setLoading(true);
+
+    // Add user message showing what's being summarized
+    const userMessage =
+      source === "pdf"
+        ? "📄 Summarize this PDF document for me"
+        : "📝 Summarize this text for me";
+
+    setMessages((prev) => [...prev, { type: "user", content: userMessage }]);
+
+    try {
+      const response = await fetch("http://localhost:5000/api/summarize", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-API-Key": apiKey,
+        },
+        body: JSON.stringify({ text }),
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      // Add AI response with summary
+      setMessages((prev) => [...prev, { type: "ai", content: data.summary }]);
+    } catch (error) {
+      console.error("Error summarizing text:", error);
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: "ai",
+          content:
+            "Sorry, I encountered an error while summarizing the content.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+      setShowSummarizer(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 to-sky-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       <Header
@@ -104,25 +164,67 @@ function App() {
                 <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-200" />
               </div>
             )}
+
+            {/* TextSummarizer appears inside the scrollable area */}
+            {showSummarizer && !loading && (
+              <div className="w-full max-w-3xl mx-auto my-6">
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
+                  <TextSummarizer
+                    apiKey={apiKey}
+                    onClose={() => setShowSummarizer(false)}
+                    onSummaryResult={(text, source) =>
+                      handleSummarize(text, source)
+                    }
+                  />
+                </div>
+              </div>
+            )}
+
             <div ref={messagesEndRef} />
           </div>
         </div>
 
         <div className="sticky bottom-0 p-6 bg-white/90 dark:bg-gray-800/90 border-t border-gray-200 dark:border-gray-700 backdrop-blur-lg">
           <div className="max-w-3xl mx-auto space-y-4">
-            <QuickActions onActionSelect={(action) => setMessage(action)} />
+            <QuickActions
+              onActionSelect={(action) => {
+                if (action === "Summarize text") {
+                  setShowSummarizer(true);
+                  // Scroll to where the summarizer will appear
+                  setTimeout(() => scrollToBottom(), 100);
+                } else {
+                  setMessage(action);
+                }
+              }}
+            />
 
             <form onSubmit={handleSubmit} className="flex items-center gap-4">
-              <input
-                type="text"
+              <textarea
+                ref={textareaRef}
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    // Regular Enter - submit the form
+                    e.preventDefault();
+                    if (message.trim() && apiKey && !loading) {
+                      handleSubmit(e as any);
+                    }
+                  }
+                  // Shift+Enter will naturally create a new line
+                }}
                 placeholder="Type your message..."
                 className="flex-1 p-4 rounded-xl bg-white dark:bg-gray-700 
-                         border border-gray-200 dark:border-gray-600
-                         text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
-                         focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                         shadow-sm"
+                  border border-gray-200 dark:border-gray-600
+                  text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
+                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
+                  shadow-sm resize-none"
+                style={{
+                  minHeight: "56px",
+                  maxHeight: "200px",
+                  overflowY: "auto",
+                }}
+                rows={1}
                 disabled={!apiKey || loading}
               />
               <VoiceInput
