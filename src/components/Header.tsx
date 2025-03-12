@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import APIKey from "./APIKey";
+import GoogleAuth from "./GoogleAuth";
 
 interface HeaderProps {
   onKeySubmit: (key: string) => void;
@@ -18,16 +19,19 @@ const Header: React.FC<HeaderProps> = ({
   // Close settings when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(event.target as Node)) {
+      if (
+        settingsRef.current &&
+        !settingsRef.current.contains(event.target as Node)
+      ) {
         setShowSettings(false);
       }
     };
 
     if (showSettings) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [showSettings]);
 
@@ -39,6 +43,7 @@ const Header: React.FC<HeaderProps> = ({
         </h1>
 
         <div className="flex items-center gap-4">
+          <GoogleAuth />
           <button
             onClick={() => setDarkMode(!darkMode)}
             className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 

@@ -72,6 +72,7 @@ function App() {
     try {
       const res = await fetch("http://localhost:5000/api/chat", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
           "X-API-Key": apiKey,
@@ -196,6 +197,7 @@ function App() {
                   setMessage(action);
                 }
               }}
+              apiKey={apiKey}
             />
 
             <form onSubmit={handleSubmit} className="flex items-center gap-4">

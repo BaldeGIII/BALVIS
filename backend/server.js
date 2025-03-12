@@ -7,6 +7,11 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
+const passport = require('passport');
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+const session = require('express-session');
+const { parse, format } = require('date-fns');
+const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
 const upload = multer({ 
   dest: 'uploads/', 
@@ -19,27 +24,193 @@ const app = express();
 const port = 5000;
 
 // YouTube API key from .env file
-const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+//const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
-app.use(cors());
+// OAuth variables
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
+const SESSION_SECRET = process.env.SESSION_SECRET;
+const REDIRECT_URI = process.env.REDIRECT_URI;
+
+app.use(cors({
+  origin: 'http://localhost:5173', // React app URL
+  credentials: true // Allow cookies for sessions
+}))
 app.use(express.json());
 
-// Trusted educational channels - add more as needed
-const TRUSTED_CHANNELS = [
-  {id: 'UCEWpbFLzoYGPfuWUMFPSaoA', name: 'Khan Academy'},
-  {id: 'UCX6b17PVsYBQ0ip5gyeme-Q', name: 'CrashCourse'},
-  {id: 'UCsooa4yRKGN_zEE8iknghZA', name: 'TED-Ed'},
-  {id: 'UC7_gcs09iThXybpVgjHZ_7g', name: 'PBS SpaceTime'},
-  {id: 'UCUHW94eEFW7hkUMVaZz4eDg', name: 'Minute Physics'},
-  {id: 'UCsXVk37bltHxD1rDPwtNM8Q', name: 'Kurzgesagt'},
-  {id: 'UC9-y-6csu5WGm29I7JiwpnA', name: 'Computerphile'},
-  {id: 'UCHnyfMqiRRG1u-2MsSQLbXA', name: 'Veritasium'},
-  {id: 'UC0uTPqBCFIpZxlz_Lv1tk_g', name: 'Practical Engineering'},
-  {id: 'UCBa659QWEk1AI4Tg--mrJ2A', name: 'Tom Scott'}
-];
+// Session configuration
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  } // Set to true if using HTTPS
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
+
+// Serialize and deserialize user
+passport.serializeUser((user, done) => {
+  done(null, user);
+});
+passport.deserializeUser((user, done) => {
+  done(null, user);
+});
+
+// Configure Google Strategy
+passport.use(new GoogleStrategy({
+  clientID: GOOGLE_CLIENT_ID,
+  clientSecret: GOOGLE_CLIENT_SECRET,
+  callbackURL: REDIRECT_URI,
+  scope: ['profile', 'email', 'https://www.googleapis.com/auth/youtube.readonly']
+},
+function(accessToken, refreshToken, profile, done) {
+  // Save user token data to the session
+  const user = {
+    id: profile.id,
+    displayName: profile.displayName,
+    email: profile.emails && profile.emails[0] ? profile.emails[0].value: '',
+    picture: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
+    accessToken,
+    refreshToken,
+    tokenExpiry: Date.now() + (3600 * 1000) // Token expires in 1 hour
+  };
+
+  console.log('Google authentication successful:', user.displayName);
+  return done(null, user);
+}
+));
+
+// Authentication helper
+function isAuthenticated(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.status(401).json({ error: 'Unauthorized' });
+}
+
+// Authentication routes
+app.get('/auth/google', passport.authenticate('google', { 
+  scope: ['profile', 'email', 'https://www.googleapis.com/auth/youtube.readonly'] 
+}));
+
+app.get('/auth/google/callback', 
+  passport.authenticate('google', { failureRedirect: '/auth/failed' }),
+  function(req, res) {
+    // Redirect to completion page which then redirects to frontend
+    res.redirect('/auth/complete');
+  }
+);
+
+app.get('/auth/complete', (req, res) => {
+  res.send(`
+    <html>
+      <head>
+        <title>Authentication Successful</title>
+        <script>
+          window.onload = function() {
+            window.location.href = "http://localhost:5173";
+          }
+        </script>
+      </head>
+      <body style="font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background-color: #f5f5f5;">
+        <div style="text-align: center; padding: 2rem; background-color: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <h2>Authentication Successful!</h2>
+          <p>Redirecting to BALVIS application...</p>
+        </div>
+      </body>
+    </html>
+  `);
+});
+
+app.get('/auth/status', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.json({ 
+      authenticated: true, 
+      user: {
+        name: req.user.displayName,
+        email: req.user.email,
+        picture: req.user.picture,
+      } 
+    });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+app.get('/', (req, res) => {
+  res.send('BALVIS API server is running. Please go to the frontend at http://localhost:5173');
+});
+
+app.get('/auth/logout', (req, res) => {
+  req.logout(function(err) {
+    if (err) { 
+      console.error('Logout error:', err);
+      return res.status(500).json({ error: 'Error during logout' }); 
+    }
+    res.redirect('http://localhost:5173');
+  });
+});
+app.get('/auth/failed', (req, res) => {
+  res.status(401).json({ error: 'Authentication failed' });
+}); 
+
+// Add this function to handle token refresh and verification
+async function verifyAndRefreshToken(req) {
+  if (!req || !req.user || !req.user.accessToken) {
+    return false;
+  }
+  
+  try {
+    // First, test if the current token works
+    try {
+      const testResponse = await axios.get('https://www.googleapis.com/youtube/v3/channels', {
+        params: { part: 'snippet', mine: true },
+        headers: { Authorization: `Bearer ${req.user.accessToken}` }
+      });
+      
+      if (testResponse.status === 200) {
+        console.log('Access token is valid');
+        return true;
+      }
+    } catch (error) {
+      console.log('Access token appears to be invalid or expired, attempting refresh');
+    }
+    
+    // If we have a refresh token, try to get a new access token
+    if (req.user.refreshToken) {
+      console.log('Attempting to refresh access token...');
+      
+      const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
+        client_id: GOOGLE_CLIENT_ID,
+        client_secret: GOOGLE_CLIENT_SECRET,
+        refresh_token: req.user.refreshToken,
+        grant_type: 'refresh_token'
+      });
+      
+      if (tokenResponse.data && tokenResponse.data.access_token) {
+        // Update the user's token in the session
+        req.user.accessToken = tokenResponse.data.access_token;
+        req.user.tokenExpiry = Date.now() + (tokenResponse.data.expires_in * 1000);
+        console.log('Access token refreshed successfully');
+        return true;
+      }
+    }
+    
+    console.log('Could not refresh the token');
+    return false;
+  } catch (error) {
+    console.error('Error during token verification/refresh:', error.message);
+    return false;
+  }
+}
 
 // Improved function to search YouTube videos
-async function searchYouTubeVideos(query, maxResults = 7) {
+async function searchYouTubeVideos(query, maxResults = 7, req = null) {
   try {
     console.log(`Searching YouTube for: "${query}"`);
     
@@ -51,15 +222,29 @@ async function searchYouTubeVideos(query, maxResults = 7) {
       type: 'video',
       videoEmbeddable: 'true',
       videoSyndicated: 'true',
-      videoCategoryId: '27', // Education category
       relevanceLanguage: 'en',
       safeSearch: 'strict',
-      key: YOUTUBE_API_KEY
     };
     
+    // Get access token if user is authenticated
+    let config = {};
+    let accessToken = null;
+
+    // Try to get token from authenticated user
+    if (req && req.isAuthenticated && req.isAuthenticated() 
+      && req.user && req.user.accessToken) {
+      accessToken = req.user.accessToken;
+      config = {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      };
+      console.log('Using access token from authenticated user');
+    } else {
+      console.log('No authenticated user or access token found');
+    }
     // Try multiple search strategies for better results
     const searchStrategies = [
-      { type: 'trusted', q: `${query} (${TRUSTED_CHANNELS.map(channel => `channel:${channel.name}`).join(' | ')})` },
       { type: 'education', q: `${query} education tutorial` },
       { type: 'general', q: query }
     ];
@@ -89,9 +274,9 @@ async function searchYouTubeVideos(query, maxResults = 7) {
           const detailsResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
             params: {
               part: 'snippet,contentDetails,statistics,status',
-              id: videoIds.join(','),
-              key: YOUTUBE_API_KEY
-            }
+              id: videoIds.join(',')
+            },
+            ...config
           });
             
             if (detailsResponse.data && detailsResponse.data.items) {
@@ -155,15 +340,29 @@ async function searchYouTubeVideos(query, maxResults = 7) {
 }
 
 // Enhanced function to get detailed video information
-async function getVideoDetails(videoId) {
+async function getVideoDetails(videoId, req=null) {
   try {
-    const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
-      params: {
-        part: 'snippet,contentDetails,statistics,status',
-        id: videoId,
-        key: YOUTUBE_API_KEY
-      }
-    });
+
+    // Set config based on authentication
+     let config = {};
+     if (req && req.isAuthenticated && req.isAuthenticated() 
+      && req.user && req.user.accessToken)  {
+       config = {
+         headers: {
+           'Authorization': `Bearer ${req.user.accessToken}`
+         }
+       };
+     }
+     
+     const params = {
+       part: 'snippet,contentDetails,statistics,status',
+       id: videoId,
+     };
+     
+     const response = await axios.get(`https://www.googleapis.com/youtube/v3/videos`, {
+       params,
+       ...config
+     }); 
     
     if (!response.data.items || response.data.items.length === 0) {
       console.log(`No details found for video ID ${videoId}`);
@@ -252,7 +451,7 @@ app.post('/api/chat', async (req, res) => {
                           message.toLowerCase().includes('video about');
 
     // Handle video requests differently
-    if (isVideoRequest && YOUTUBE_API_KEY) {
+    if (isVideoRequest) {
       // Extract the topic the user is asking about using regex
       const videoTopicRegex = /(?:find|show|get|search for)?\s*(?:a|me a|some)?\s*videos?(?:\s+about|\s+on|\s+for|\s+related to|\s+regarding)?\s*(.*?)(?:\?|$|\.)/i;
       const topicMatch = message.match(videoTopicRegex);
@@ -260,8 +459,8 @@ app.post('/api/chat', async (req, res) => {
       
       console.log('Extracted video topic:', videoTopic);
       
-      // Get videos from YouTube API
-      const videos = await searchYouTubeVideos(videoTopic);
+      // Pass the request object to access authenticated user information
+      const videos = await searchYouTubeVideos(videoTopic, 7, req);
       
       if (videos && videos.length > 0) {
         // Get the top 3 videos to give ChatGPT options
@@ -453,6 +652,46 @@ Summary:`;
   } catch (error) {
     console.error('Error summarizing text:', error);
     res.status(500).json({ error: 'Failed to summarize text' });
+  }
+});
+
+// Enhance the log-video-search endpoint
+app.post('/api/log-video-search', async (req, res) => {
+  const { query } = req.body;
+  const apiKey = req.headers['x-api-key'];
+  
+  if (!query) {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+  
+  try {
+    // First, attempt to search YouTube directly
+    const videos = await searchYouTubeVideos(query, 1, req);
+    
+    // If search was successful, the logging is already done by searchYouTubeVideos
+    if (videos && videos.length > 0) {
+      return res.json({ 
+        success: true, 
+        message: 'Search logged successfully with video result',
+        videoFound: true
+      });
+    }
+    
+    // Otherwise, just log the query without video data
+    const logged = await logVideoSearchToCSV(query, null, req);
+    
+    if (logged) {
+      return res.json({ 
+        success: true, 
+        message: 'Search logged successfully without video result',
+        videoFound: false
+      });
+    } else {
+      return res.status(500).json({ error: 'Failed to log search' });
+    }
+  } catch (error) {
+    console.error('Error logging video search:', error);
+    res.status(500).json({ error: 'Failed to log search: ' + error.message });
   }
 });
 
