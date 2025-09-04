@@ -21,7 +21,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onActionSelect }) => {
     }
 
     // For video search, just trigger the action and let the user type in the chat
-    onActionSelect("I want to find a video about...");
+    onActionSelect("I want to find a video about");
   };
 
   return (
