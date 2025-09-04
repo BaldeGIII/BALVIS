@@ -19,28 +19,63 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
   }, [message.content]);
 
   const formatMessage = (content: string) => {
-    // Enhanced regex to match YouTube links in various formats with better group capturing
-    const videoLinkRegex =
-      /\[(.*?)\]\((https?:\/\/(?:www\.)?youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/|)([a-zA-Z0-9_-]{11})(?:[^\s)]*)?)\)/;
-    const match = content.match(videoLinkRegex);
+    // Enhanced regex to detect various YouTube URL formats
+    const youtubeRegex =
+      /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})(?:[^\s\])]*)?\b/gi;
+    const youtubeMatches = Array.from(content.matchAll(youtubeRegex));
 
-    console.log("Checking for YouTube embeds:", match ? "found" : "none"); // Debugging
+    // If we found YouTube URLs and no video error, embed them
+    if (youtubeMatches.length > 0 && !videoError) {
+      const parts = [];
+      let lastIndex = 0;
 
-    if (match && !videoError) {
-      const [fullMatch, title, url, videoId] = match;
+      youtubeMatches.forEach((match, index) => {
+        const [fullMatch, videoId] = match;
+        const matchStart = match.index || 0;
 
-      console.log("Video embedding:", { title, url, videoId }); // Debugging
+        // Add text before this match
+        if (matchStart > lastIndex) {
+          const textBefore = content.slice(lastIndex, matchStart);
+          if (textBefore.trim()) {
+            parts.push(
+              <div key={`text-${index}`} className="whitespace-pre-wrap mb-4">
+                {textBefore}
+              </div>
+            );
+          }
+        }
 
-      const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+        // Extract video title from surrounding text (if available)
+        const lines = content.split("\n");
+        let videoTitle = "YouTube Video";
+        for (const line of lines) {
+          if (line.includes(fullMatch) && line.trim() !== fullMatch) {
+            // Try to extract title from the line containing the URL
+            const titleMatch = line.replace(fullMatch, "").trim();
+            if (
+              titleMatch &&
+              titleMatch.length > 0 &&
+              titleMatch.length < 200
+            ) {
+              videoTitle = titleMatch
+                .replace(/^\d+\.\s*/, "")
+                .replace(/^-\s*/, "")
+                .trim();
+            }
+            break;
+          }
+        }
 
-      return (
-        <div className="space-y-4">
-          <div className="whitespace-pre-wrap">
-            {content.replace(fullMatch, "")}
-          </div>
-          <div className="mt-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+        const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=0&rel=0`;
+
+        // Add the embedded video
+        parts.push(
+          <div
+            key={`video-${index}`}
+            className="mt-4 mb-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600"
+          >
             <h3 className="font-semibold p-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
-              {title}
+              {videoTitle}
             </h3>
             <div className="relative pt-[56.25%] w-full bg-black">
               <iframe
@@ -48,69 +83,110 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
                 className="absolute top-0 left-0 w-full h-full"
                 allowFullScreen
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                title={title}
+                title={videoTitle}
                 loading="lazy"
                 referrerPolicy="strict-origin-when-cross-origin"
                 onError={() => {
-                  console.error("Video failed to load"); // Debugging
+                  console.error(`Failed to load video: ${videoId}`);
                   setVideoError(true);
-                  setProcessedContent(
-                    <div className="whitespace-pre-wrap">{content}</div>
-                  );
-                }}
-                onLoad={(e) => {
-                  console.log("Video iframe loaded");
-                  // Try-catch needed because some browsers restrict iframe access
-                  try {
-                    const iframe = e.currentTarget;
-                    if (iframe.contentWindow) {
-                      console.log("Video loaded successfully");
-                    }
-                  } catch (error) {
-                    // Silent catch - browsers restrict access to cross-origin iframes
-                  }
                 }}
               />
-              {videoError && (
-                <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-700 rounded-lg p-4">
-                  <div className="text-red-500 mb-2">
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-12 w-12"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
-                    Video Unavailable
-                  </h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-300 text-center mt-1">
-                    This video is no longer available or cannot be embedded.
-                  </p>
-                  <a
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-3 text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                  >
-                    Try watching on YouTube
-                  </a>
-                </div>
-              )}
+            </div>
+            <div className="p-3 bg-gray-50 dark:bg-gray-800">
+              <a
+                href={fullMatch}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
+              >
+                Watch on YouTube →
+              </a>
             </div>
           </div>
-        </div>
-      );
+        );
+
+        lastIndex = matchStart + fullMatch.length;
+      });
+
+      // Add any remaining text after the last match
+      if (lastIndex < content.length) {
+        const remainingText = content.slice(lastIndex);
+        if (remainingText.trim()) {
+          parts.push(
+            <div key="text-final" className="whitespace-pre-wrap mt-4">
+              {remainingText}
+            </div>
+          );
+        }
+      }
+
+      return <div className="space-y-2">{parts}</div>;
     }
 
+    // Enhanced formatting for video recommendations without URLs
+    // Look for **[Title] by [Channel]** pattern and format them nicely
+    const videoRecommendationRegex = /\*\*(.*?) by (.*?)\*\*/g;
+    const videoRecMatches = Array.from(
+      content.matchAll(videoRecommendationRegex)
+    );
+
+    if (videoRecMatches.length > 0) {
+      const parts = [];
+      let lastIndex = 0;
+
+      videoRecMatches.forEach((match, index) => {
+        const [fullMatch, title, channel] = match;
+        const matchStart = match.index || 0;
+
+        // Add text before this match
+        if (matchStart > lastIndex) {
+          const textBefore = content.slice(lastIndex, matchStart);
+          if (textBefore.trim()) {
+            parts.push(
+              <div key={`text-${index}`} className="whitespace-pre-wrap mb-2">
+                {textBefore}
+              </div>
+            );
+          }
+        }
+
+        // Create a nicely formatted video recommendation card
+        parts.push(
+          <div
+            key={`video-rec-${index}`}
+            className="my-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
+          >
+            <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
+              📺 {title}
+            </h4>
+            <p className="text-blue-700 dark:text-blue-300 text-sm mb-2">
+              by {channel}
+            </p>
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              Search for this video on YouTube to watch it
+            </p>
+          </div>
+        );
+
+        lastIndex = matchStart + fullMatch.length;
+      });
+
+      // Add any remaining text after the last match
+      if (lastIndex < content.length) {
+        const remainingText = content.slice(lastIndex);
+        if (remainingText.trim()) {
+          parts.push(
+            <div key="text-final" className="whitespace-pre-wrap mt-2">
+              {remainingText}
+            </div>
+          );
+        }
+      }
+
+      return <div className="space-y-2">{parts}</div>;
+    }
+
+    // Fallback: if no YouTube URLs found or there was an error, show plain text
     return <div className="whitespace-pre-wrap">{content}</div>;
   };
 

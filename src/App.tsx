@@ -53,6 +53,49 @@ function App() {
     adjustTextareaHeight();
   }, [message]);
 
+  useEffect(() => {
+    // Handle web search results from QuickActions
+    const handleWebSearchResult = (event: CustomEvent) => {
+      if (event.detail && event.detail.content) {
+        setMessages((prev) => [
+          ...prev,
+          { type: "ai", content: event.detail.content },
+        ]);
+      }
+    };
+
+    // Handle video search results from QuickActions (YouTube API)
+    const handleVideoSearchResult = (event: CustomEvent) => {
+      if (event.detail && event.detail.content) {
+        setMessages((prev) => [
+          ...prev,
+          { type: "ai", content: event.detail.content },
+        ]);
+      }
+    };
+
+    window.addEventListener(
+      "webSearchResult",
+      handleWebSearchResult as EventListener
+    );
+
+    window.addEventListener(
+      "videoSearchResult",
+      handleVideoSearchResult as EventListener
+    );
+
+    return () => {
+      window.removeEventListener(
+        "webSearchResult",
+        handleWebSearchResult as EventListener
+      );
+      window.removeEventListener(
+        "videoSearchResult",
+        handleVideoSearchResult as EventListener
+      );
+    };
+  }, []);
+
   const handleKeySubmit = (key: string) => {
     localStorage.setItem("openai_api_key", key);
     setApiKey(key);
@@ -197,7 +240,6 @@ function App() {
                   setMessage(action);
                 }
               }}
-              apiKey={apiKey}
             />
 
             <form onSubmit={handleSubmit} className="flex items-center gap-4">

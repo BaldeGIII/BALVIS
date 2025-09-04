@@ -9,14 +9,10 @@ const QUICK_ACTIONS = [
 
 interface QuickActionsProps {
   onActionSelect: (action: string) => void;
-  apiKey: string;
 }
 
-const QuickActions: React.FC<QuickActionsProps> = ({
-  onActionSelect,
-  apiKey,
-}) => {
-  // Fixed function to handle video search action
+const QuickActions: React.FC<QuickActionsProps> = ({ onActionSelect }) => {
+  // Updated function to handle video search action using YouTube API
   const handleVideoSearchAction = async (action: string) => {
     // If it's not the video action, just pass it through
     if (action !== "Find a video") {
@@ -24,45 +20,8 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       return;
     }
 
-    // For video search, we want to log it first
-    try {
-      // Show a prompt to get the search query
-      const searchQuery = window.prompt(
-        "What kind of video would you like to find?"
-      );
-
-      if (!searchQuery || searchQuery.trim() === "") {
-        return; // User cancelled or entered empty query
-      }
-
-      // Log the search query to our backend
-      const response = await fetch(
-        "http://localhost:5000/api/log-video-search",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-            "X-API-Key": apiKey,
-          },
-          body: JSON.stringify({ query: searchQuery }),
-        }
-      );
-
-      if (!response.ok) {
-        console.error("Failed to log video search");
-      } else {
-        console.log("Video search logged successfully");
-      }
-
-      // Now construct the full action text and pass it to the handler
-      const fullAction = `Find a video about ${searchQuery}`;
-      onActionSelect(fullAction);
-    } catch (error) {
-      console.error("Error handling video search action:", error);
-      // Still try to perform the basic action even if logging fails
-      onActionSelect(action);
-    }
+    // For video search, just trigger the action and let the user type in the chat
+    onActionSelect("I want to find a video about...");
   };
 
   return (

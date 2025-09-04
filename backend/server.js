@@ -24,7 +24,7 @@ const app = express();
 const port = 5000;
 
 // YouTube API key from .env file
-//const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
+const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 // OAuth variables
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
@@ -205,6 +205,137 @@ async function verifyAndRefreshToken(req) {
     return false;
   } catch (error) {
     console.error('Error during token verification/refresh:', error.message);
+    return false;
+  }
+}
+
+// Simple YouTube API search function
+async function searchYouTubeWithAPI(query, maxResults = 5) {
+  try {
+    console.log(`🔍 Searching YouTube API for: "${query}"`);
+    
+    if (!YOUTUBE_API_KEY) {
+      throw new Error('YouTube API key is not configured');
+    }
+    
+    // Search for videos
+    const searchResponse = await axios.get('https://www.googleapis.com/youtube/v3/search', {
+      params: {
+        part: 'snippet',
+        q: query,
+        maxResults: maxResults * 2, // Get more results to filter out shorts
+        type: 'video',
+        videoEmbeddable: 'true',
+        videoDuration: 'medium', // Exclude shorts (videos under 4 minutes)
+        key: YOUTUBE_API_KEY
+      }
+    });
+    
+    if (!searchResponse.data.items || searchResponse.data.items.length === 0) {
+      console.log('❌ No videos found');
+      return [];
+    }
+    
+    console.log(`✅ Found ${searchResponse.data.items.length} videos`);
+    
+    // Get video IDs for additional details
+    const videoIds = searchResponse.data.items.map(item => item.id.videoId);
+    
+    // Get detailed video information including statistics
+    const detailsResponse = await axios.get('https://www.googleapis.com/youtube/v3/videos', {
+      params: {
+        part: 'snippet,statistics,contentDetails',
+        id: videoIds.join(','),
+        key: YOUTUBE_API_KEY
+      }
+    });
+    
+    const videos = detailsResponse.data.items
+      .filter(video => {
+        // Filter out shorts and very short videos
+        if (video.contentDetails && video.contentDetails.duration) {
+          const duration = video.contentDetails.duration;
+          // Parse ISO 8601 duration (e.g., PT1M30S = 1 minute 30 seconds)
+          const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+          if (match) {
+            const hours = parseInt(match[1] || '0');
+            const minutes = parseInt(match[2] || '0');
+            const seconds = parseInt(match[3] || '0');
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            
+            // Exclude videos shorter than 2 minutes (120 seconds)
+            if (totalSeconds < 120) {
+              console.log(`Filtering out short video: ${video.snippet.title} (${duration})`);
+              return false;
+            }
+          }
+        }
+        return true;
+      })
+      .slice(0, maxResults) // Limit to requested number after filtering
+      .map(video => ({
+        id: video.id,
+        title: video.snippet.title,
+        channelTitle: video.snippet.channelTitle,
+        description: video.snippet.description,
+        publishedAt: video.snippet.publishedAt,
+        thumbnails: video.snippet.thumbnails,
+        viewCount: video.statistics.viewCount || '0',
+        likeCount: video.statistics.likeCount || '0',
+        duration: video.contentDetails.duration,
+        url: `https://www.youtube.com/watch?v=${video.id}`,
+        embedUrl: `https://www.youtube.com/embed/${video.id}`
+      }));
+    
+    // Save to CSV
+    await saveVideosToCSV(query, videos);
+    
+    return videos;
+    
+  } catch (error) {
+    console.error('❌ YouTube API Error:', error.message);
+    if (error.response) {
+      console.error('API Response:', error.response.data);
+    }
+    return [];
+  }
+}
+
+// Function to save videos to CSV
+async function saveVideosToCSV(query, videos) {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    const csvPath = path.join(dataDir, 'test_search.csv');
+    let csvContent = '';
+    
+    // Create header if file doesn't exist
+    if (!fs.existsSync(csvPath)) {
+      csvContent = 'TIMESTAMP,QUERY,VIDEO_ID,VIDEO_TITLE,CHANNEL_TITLE,VIEW_COUNT\n';
+    }
+    
+    // Add data rows
+    const timestamp = new Date().toISOString();
+    if (videos && videos.length > 0) {
+      videos.forEach(video => {
+        const title = (video.title || '').replace(/"/g, '""');
+        const channel = (video.channelTitle || '').replace(/"/g, '""');
+        csvContent += `${timestamp},"${query}","${video.id}","${title}","${channel}","${video.viewCount}"\n`;
+      });
+      console.log(`📝 Saved ${videos.length} videos to CSV`);
+    } else {
+      csvContent += `${timestamp},"${query}",,,,"No results"\n`;
+      console.log('📝 Logged "no results" to CSV');
+    }
+    
+    // Append to CSV file
+    fs.appendFileSync(csvPath, csvContent);
+    return true;
+  } catch (error) {
+    console.error('Error saving to CSV:', error);
     return false;
   }
 }
@@ -432,6 +563,47 @@ function parseYouTubeResponse(responseData) {
     }
   }
 
+// Function to log video searches to CSV
+async function logVideoSearchToCSV(query, videos, req) {
+  try {
+    // Create data directory if it doesn't exist
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    
+    const csvPath = path.join(dataDir, 'video_searches.csv');
+    let csvContent = '';
+    
+    // Create header if file doesn't exist
+    if (!fs.existsSync(csvPath)) {
+      csvContent = 'TIMESTAMP,QUERY,VIDEO_ID,VIDEO_TITLE,CHANNEL_TITLE,VIEW_COUNT\n';
+    }
+    
+    // Add data rows
+    const timestamp = new Date().toISOString();
+    if (videos && videos.length > 0) {
+      videos.forEach(video => {
+        const videoId = video.id || '';
+        const title = (video.snippet?.title || '').replace(/"/g, '""');
+        const channel = (video.snippet?.channelTitle || '').replace(/"/g, '""');
+        const views = video.statistics?.viewCount || '';
+        csvContent += `${timestamp},"${query}","${videoId}","${title}","${channel}","${views}"\n`;
+      });
+    } else {
+      csvContent += `${timestamp},"${query}",,,,"No results"\n`;
+    }
+    
+    // Append to CSV file
+    fs.appendFileSync(csvPath, csvContent);
+    console.log('Search logged to CSV');
+    return true;
+  } catch (error) {
+    console.error('Error logging to CSV:', error);
+    return false;
+  }
+}
+
 app.post('/api/chat', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
   
@@ -444,117 +616,59 @@ app.post('/api/chat', async (req, res) => {
   });
 
   try {
-    console.log('Processing request...');
     const { message } = req.body;
+    console.log('📨 Processing chat request:', message);
     const isVideoRequest = message.toLowerCase().includes('find a video') || 
                           message.toLowerCase().includes('show me a video') ||
-                          message.toLowerCase().includes('video about');
+                          message.toLowerCase().includes('video about') ||
+                          message.toLowerCase().includes('find videos') ||
+                          message.toLowerCase().includes('search for video');
 
-    // Handle video requests differently
+    // Handle video requests with YouTube API
     if (isVideoRequest) {
-      // Extract the topic the user is asking about using regex
+      console.log('🎥 Video search detected, using YouTube API...');
+      
+      // Extract the topic the user is asking about
       const videoTopicRegex = /(?:find|show|get|search for)?\s*(?:a|me a|some)?\s*videos?(?:\s+about|\s+on|\s+for|\s+related to|\s+regarding)?\s*(.*?)(?:\?|$|\.)/i;
       const topicMatch = message.match(videoTopicRegex);
-      const videoTopic = topicMatch ? topicMatch[1].trim() : message.replace(/find a video|show me a video|video about/gi, '').trim();
+      const videoTopic = topicMatch ? topicMatch[1].trim() : message.replace(/find a video|show me a video|video about|find videos|search for video/gi, '').trim();
       
       console.log('Extracted video topic:', videoTopic);
       
-      // Pass the request object to access authenticated user information
-      const videos = await searchYouTubeVideos(videoTopic, 7, req);
-      
-      if (videos && videos.length > 0) {
-        // Get the top 3 videos to give ChatGPT options
-        const topVideos = videos.slice(0, 3);
+      try {
+        const videos = await searchYouTubeWithAPI(videoTopic);
         
-        console.log(`Found ${topVideos.length} relevant videos`, 
-          topVideos.map(v => ({ 
-            id: v.id, 
-            title: v.snippet.title, 
-            channel: v.snippet.channelTitle,
-            views: v.statistics.viewCount
-          })));
-        
-        // Create detailed information about each video for analysis
-        const videoDescriptions = await Promise.all(topVideos.map(async (video) => {
-          return {
-            id: video.id,
-            title: video.snippet.title,
-            channelTitle: video.snippet.channelTitle,
-            description: video.snippet.description.substring(0, 500) + (video.snippet.description.length > 500 ? '...' : ''),
-            viewCount: parseInt(video.statistics.viewCount || '0').toLocaleString(),
-            likeCount: (video.statistics.likeCount ? parseInt(video.statistics.likeCount).toLocaleString() : 'N/A'),
-            publishedAt: new Date(video.snippet.publishedAt).toLocaleDateString(),
-            duration: video.formattedDuration || formatIsoDuration(video.contentDetails.duration)
-          };
-        }));
-        
-        // Have ChatGPT analyze the videos and pick the most relevant one
-        const videoPrompt = `
-        The user asked for a video about: "${videoTopic}"
-        
-        I've searched YouTube and found these top educational videos. Please CAREFULLY analyze each video and select the ONE that best matches the user's specific query.
-        
-        Video 1:
-        - Title: "${videoDescriptions[0].title}"
-        - Channel: ${videoDescriptions[0].channelTitle}
-        - Views: ${videoDescriptions[0].viewCount}
-        - Published: ${videoDescriptions[0].publishedAt}
-        - Duration: ${videoDescriptions[0].duration}
-        - Description: "${videoDescriptions[0].description}"
-        
-        ${videoDescriptions[1] ? `Video 2:
-        - Title: "${videoDescriptions[1].title}"
-        - Channel: ${videoDescriptions[1].channelTitle}
-        - Views: ${videoDescriptions[1].viewCount}
-        - Published: ${videoDescriptions[1].publishedAt}
-        - Duration: ${videoDescriptions[1].duration}
-        - Description: "${videoDescriptions[1].description}"` : ''}
-        
-        ${videoDescriptions[2] ? `Video 3:
-        - Title: "${videoDescriptions[2].title}"
-        - Channel: ${videoDescriptions[2].channelTitle}
-        - Views: ${videoDescriptions[2].viewCount}
-        - Published: ${videoDescriptions[2].publishedAt}
-        - Duration: ${videoDescriptions[2].duration}
-        - Description: "${videoDescriptions[2].description}"` : ''}
-        
-        Based on a careful analysis of these videos, choose the ONE video that most precisely matches what the user is looking for.
-        Consider:
-        1. How directly the content addresses the specific topic
-        2. The reputation of the channel
-        3. How recent and up-to-date the information is
-        4. The level of detail and clarity
-        
-        Format your response EXACTLY like this:
-        
-        Brief Explanation: [Write 2-3 sentences explaining ${videoTopic} in clear, educational terms]
-        
-        Recommended Video: [EXACT VIDEO TITLE](https://www.youtube.com/watch?v=[VIDEO ID])
-        
-        Why This Video: [Provide a detailed explanation of why this specific video is the best match for the user's query. Mention specific aspects of the video that make it relevant.]
-        
-        IMPORTANT: Do NOT change the format. In the Recommended Video line, replace [EXACT VIDEO TITLE] with the full video title and [VIDEO ID] with the actual video ID. The format must be exactly as shown, with square brackets for the title and parentheses for the URL. This specific format is required for proper embedding.
-        
-        Video IDs:
-        Video 1: ${videoDescriptions[0].id}
-        ${videoDescriptions[1] ? `Video 2: ${videoDescriptions[1].id}` : ''}
-        ${videoDescriptions[2] ? `Video 3: ${videoDescriptions[2].id}` : ''}
-        `;
+        if (videos && videos.length > 0) {
+          let videoResponse = `I found some great educational videos about "${videoTopic}":\n\n`;
           
-        console.log('Asking ChatGPT to analyze videos...');
-        const completion = await openai.chat.completions.create({
-          model: 'gpt-4o',
-          messages: [{ role: 'user', content: videoPrompt }],
-          max_tokens: 800,
-          temperature: 0.5
-        });
+          videos.slice(0, 5).forEach((video, index) => {
+            videoResponse += `${index + 1}. ${video.title}\n`;
+            videoResponse += `   Channel: ${video.channelTitle}\n`;
+            videoResponse += `   Views: ${parseInt(video.viewCount).toLocaleString()}\n`;
+            videoResponse += `   ${video.url}\n\n`;
+          });
+          
+          videoResponse += `\nThese videos have been saved to your search history for future reference.`;
+          
+          console.log('✅ Successfully found videos, sending response and returning early');
+          return res.json({ 
+            reply: videoResponse,
+            videos: videos.slice(0, 5),
+            type: 'video_search'
+          });
+        } else {
+          const fallbackMessage = `I couldn't find any videos for "${videoTopic}". This might be because:\n\n1. The YouTube API quota has been exceeded\n2. The search term was too specific\n3. There was a temporary connection issue\n\nTry:\n- Using broader search terms\n- Checking your internet connection\n- Trying again in a few minutes`;
+          
+          return res.json({ 
+            reply: fallbackMessage,
+            type: 'error'
+          });
+        }
+      } catch (error) {
+        console.error('YouTube API error:', error);
         
-        console.log('ChatGPT analysis complete, sending response');
-        res.json({ reply: completion.choices[0].message.content });
-      } else {
-        // Fallback if no videos found
-        console.log('No videos found, using fallback response');
-        const fallbackPrompt = `The user asked for a video about "${videoTopic}" but my search didn't return any good matches. Please provide:
+        // Provide a helpful fallback response
+        const fallbackPrompt = `The user asked for a video about "${videoTopic}" but I couldn't access YouTube right now. Please provide:
           1. A brief explanation of the topic (2-3 sentences)
           2. An acknowledgment that specific videos couldn't be found
           3. A suggestion for alternative search terms they might try
@@ -641,7 +755,7 @@ ${text}
 Summary:`;
     
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'gpt-4.1',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 800,
       temperature: 0.5
@@ -665,19 +779,7 @@ app.post('/api/log-video-search', async (req, res) => {
   }
   
   try {
-    // First, attempt to search YouTube directly
-    const videos = await searchYouTubeVideos(query, 1, req);
-    
-    // If search was successful, the logging is already done by searchYouTubeVideos
-    if (videos && videos.length > 0) {
-      return res.json({ 
-        success: true, 
-        message: 'Search logged successfully with video result',
-        videoFound: true
-      });
-    }
-    
-    // Otherwise, just log the query without video data
+    // Instead of YouTube API, just log the search query
     const logged = await logVideoSearchToCSV(query, null, req);
     
     if (logged) {
@@ -692,6 +794,63 @@ app.post('/api/log-video-search', async (req, res) => {
   } catch (error) {
     console.error('Error logging video search:', error);
     res.status(500).json({ error: 'Failed to log search: ' + error.message });
+  }
+});
+
+// Update the web-search endpoint to better handle video requests
+
+app.post('/api/web-search', async (req, res) => {
+  const apiKey = req.headers['x-api-key'];
+  const { query, user_location, search_context_size } = req.body;
+
+  if (!apiKey) {
+    return res.status(401).json({ error: 'API key is required' });
+  }
+  if (!query) {
+    return res.status(400).json({ error: 'Query is required' });
+  }
+
+  // Detect if this is a video search request
+  const isVideoRequest = query.toLowerCase().includes('find a video') || 
+                        query.toLowerCase().includes('youtube') ||
+                        query.toLowerCase().includes('watch') ||
+                        query.toLowerCase().includes('video about');
+
+  const openai = new OpenAI({ apiKey });
+
+  try {
+    // Since responses.create is not available, we'll use regular chat completion
+    // with a prompt that provides helpful video recommendations without fake URLs
+    const enhancedQuery = isVideoRequest 
+      ? `I need you to help find YouTube videos about: "${query}". 
+         
+         Please provide a response that includes:
+         1. A brief explanation of the topic (2-3 sentences)
+         2. A list of 5 realistic YouTube video recommendations with well-known creators who actually make content about this topic
+         
+         Format each recommendation like this:
+         **[Video Title] by [Channel Name]**
+         - Brief description of what this video covers
+         
+         IMPORTANT: Do NOT include any YouTube URLs or video IDs. Only provide the titles, channel names, and descriptions. Users will search for these videos themselves on YouTube.
+         
+         Make sure all the video titles and channel names are realistic and from actual content creators who would cover this topic.`
+      : query;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: 'user', content: enhancedQuery }],
+      max_tokens: 1000,
+      temperature: 0.7
+    });
+
+    const response = completion.choices[0].message.content;
+    
+    // Format the response to match what the frontend expects
+    res.json({ output_text: response });
+  } catch (error) {
+    console.error('Web search error:', error?.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to perform web search' });
   }
 });
 
