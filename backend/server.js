@@ -7,9 +7,6 @@ const multer = require('multer');
 const pdfParse = require('pdf-parse');
 const fs = require('fs');
 const path = require('path');
-const passport = require('passport');
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const session = require('express-session');
 const { parse, format } = require('date-fns');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 
@@ -21,83 +18,20 @@ const upload = multer({
 });
 
 const app = express();
-const port = 5000;
+const port = 3001; // Changed from 5000 to 3001 to match frontend expectations
 
 // YouTube API key from .env file
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
-// OAuth variables
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
-const SESSION_SECRET = process.env.SESSION_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-
 app.use(cors({
   origin: 'http://localhost:5173', // React app URL
-  credentials: true // Allow cookies for sessions
-}))
+  credentials: false // Simplified - no sessions needed
+}));
 app.use(express.json());
 
-// Session configuration
-app.use(session({
-  secret: SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production', // Set to true if using HTTPS
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  } // Set to true if using HTTPS
-}));
+// API Routes start here
 
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
-// Serialize and deserialize user
-passport.serializeUser((user, done) => {
-  done(null, user);
-});
-passport.deserializeUser((user, done) => {
-  done(null, user);
-});
-
-// Configure Google Strategy
-passport.use(new GoogleStrategy({
-  clientID: GOOGLE_CLIENT_ID,
-  clientSecret: GOOGLE_CLIENT_SECRET,
-  callbackURL: REDIRECT_URI,
-  scope: ['profile', 'email', 'https://www.googleapis.com/auth/youtube.readonly']
-},
-function(accessToken, refreshToken, profile, done) {
-  // Save user token data to the session
-  const user = {
-    id: profile.id,
-    displayName: profile.displayName,
-    email: profile.emails && profile.emails[0] ? profile.emails[0].value: '',
-    picture: profile.photos && profile.photos[0] ? profile.photos[0].value : '',
-    accessToken,
-    refreshToken,
-    tokenExpiry: Date.now() + (3600 * 1000) // Token expires in 1 hour
-  };
-
-  console.log('Google authentication successful:', user.displayName);
-  return done(null, user);
-}
-));
-
-// Authentication helper
-function isAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: 'Unauthorized' });
-}
-
-// Authentication routes
-app.get('/auth/google', passport.authenticate('google', { 
-  scope: ['profile', 'email', 'https://www.googleapis.com/auth/youtube.readonly'] 
-}));
-
+/*
 app.get('/auth/google/callback', 
   passport.authenticate('google', { failureRedirect: '/auth/failed' }),
   function(req, res) {
@@ -145,9 +79,16 @@ app.get('/auth/status', (req, res) => {
 app.get('/', (req, res) => {
   res.send('BALVIS API server is running. Please go to the frontend at http://localhost:5173');
 });
+*/
 
+// Root route
+app.get('/', (req, res) => {
+  res.send('BALVIS API server is running. Please go to the frontend at http://localhost:5173');
+});
+
+/*
 app.get('/auth/logout', (req, res) => {
-  req.logout(function(err) {
+  req.logout(function(err) => {
     if (err) { 
       console.error('Logout error:', err);
       return res.status(500).json({ error: 'Error during logout' }); 
@@ -158,7 +99,9 @@ app.get('/auth/logout', (req, res) => {
 app.get('/auth/failed', (req, res) => {
   res.status(401).json({ error: 'Authentication failed' });
 }); 
+*/
 
+/*
 // Add this function to handle token refresh and verification
 async function verifyAndRefreshToken(req) {
   if (!req || !req.user || !req.user.accessToken) {
@@ -208,6 +151,7 @@ async function verifyAndRefreshToken(req) {
     return false;
   }
 }
+*/
 
 // Simple YouTube API search function
 async function searchYouTubeWithAPI(query, maxResults = 5) {
@@ -604,6 +548,91 @@ async function logVideoSearchToCSV(query, videos, req) {
   }
 }
 
+// Helper function to convert LaTeX mathematical notation to Unicode symbols
+function convertLatexToUnicode(text) {
+  if (!text || typeof text !== 'string') return text;
+  
+  let converted = text;
+  
+  // Convert LaTeX square roots: \(\sqrt{number}\) → √number
+  converted = converted.replace(/\\?\\\(\s*\\sqrt\{([^}]+)\}\s*\\?\\\)/g, '√$1');
+  
+  // Convert LaTeX fractions: \(\frac{a}{b}\) → a/b
+  converted = converted.replace(/\\?\\\(\s*\\frac\{([^}]+)\}\{([^}]+)\}\s*\\?\\\)/g, '$1/$2');
+  
+  // Convert LaTeX superscripts in parentheses: \(x^2\) → x², \(3^2\) → 3², etc.
+  converted = converted.replace(/\\?\\\(\s*([^\\)]*)\^(\d+)\s*\\?\\\)/g, '$1$2');
+  
+  // Convert more complex expressions: \(3\sqrt{2}\) → 3√2
+  converted = converted.replace(/\\?\\\(\s*(\d+)\\sqrt\{([^}]+)\}\s*\\?\\\)/g, '$1√$2');
+  
+  // Convert LaTeX mathematical expressions in parentheses: \(expression\) → expression
+  // This should be done AFTER more specific patterns
+  converted = converted.replace(/\\?\\\(\s*([^\\)]+)\s*\\?\\\)/g, '$1');
+  
+  // Convert common mathematical symbols
+  converted = converted.replace(/\\times/g, '×');
+  converted = converted.replace(/\\div/g, '÷');
+  converted = converted.replace(/\\pm/g, '±');
+  converted = converted.replace(/\\mp/g, '∓');
+  converted = converted.replace(/\\cdot/g, '·');
+  converted = converted.replace(/\\approx/g, '≈');
+  converted = converted.replace(/\\neq/g, '≠');
+  converted = converted.replace(/\\leq/g, '≤');
+  converted = converted.replace(/\\geq/g, '≥');
+  converted = converted.replace(/\\infty/g, '∞');
+  converted = converted.replace(/\\pi/g, 'π');
+  converted = converted.replace(/\\theta/g, 'θ');
+  converted = converted.replace(/\\alpha/g, 'α');
+  converted = converted.replace(/\\beta/g, 'β');
+  converted = converted.replace(/\\gamma/g, 'γ');
+  converted = converted.replace(/\\delta/g, 'δ');
+  converted = converted.replace(/\\sum/g, '∑');
+  converted = converted.replace(/\\int/g, '∫');
+  
+  // Convert standalone superscripts: ^2 → ², ^3 → ³, etc.
+  converted = converted.replace(/\^2\b/g, '²');
+  converted = converted.replace(/\^3\b/g, '³');
+  converted = converted.replace(/\^4\b/g, '⁴');
+  converted = converted.replace(/\^5\b/g, '⁵');
+  converted = converted.replace(/\^6\b/g, '⁶');
+  converted = converted.replace(/\^7\b/g, '⁷');
+  converted = converted.replace(/\^8\b/g, '⁸');
+  converted = converted.replace(/\^9\b/g, '⁹');
+  
+  // Convert subscripts: _1 → ₁, _2 → ₂, etc.
+  converted = converted.replace(/_0\b/g, '₀');
+  converted = converted.replace(/_1\b/g, '₁');
+  converted = converted.replace(/_2\b/g, '₂');
+  converted = converted.replace(/_3\b/g, '₃');
+  converted = converted.replace(/_4\b/g, '₄');
+  converted = converted.replace(/_5\b/g, '₅');
+  converted = converted.replace(/_6\b/g, '₆');
+  converted = converted.replace(/_7\b/g, '₇');
+  converted = converted.replace(/_8\b/g, '₈');
+  converted = converted.replace(/_9\b/g, '₉');
+  
+  // Map numbers to their superscript Unicode equivalents
+  const superscriptMap = {
+    '2': '²',
+    '3': '³',
+    '4': '⁴',
+    '5': '⁵',
+    '6': '⁶',
+    '7': '⁷',
+    '8': '⁸',
+    '9': '⁹'
+  };
+  
+  // Apply superscript conversion
+  for (const [num, sup] of Object.entries(superscriptMap)) {
+    const regex = new RegExp(`([a-zA-Z0-9])\\^${num}`, 'g');
+    converted = converted.replace(regex, `$1${sup}`);
+  }
+  
+  return converted;
+}
+
 app.post('/api/chat', async (req, res) => {
   const apiKey = req.headers['x-api-key'];
   
@@ -622,16 +651,28 @@ app.post('/api/chat', async (req, res) => {
                           message.toLowerCase().includes('show me a video') ||
                           message.toLowerCase().includes('video about') ||
                           message.toLowerCase().includes('find videos') ||
-                          message.toLowerCase().includes('search for video');
+                          message.toLowerCase().includes('find educational videos') ||
+                          message.toLowerCase().includes('educational videos about') ||
+                          message.toLowerCase().includes('search for video') ||
+                          message.toLowerCase().startsWith('find educational videos about:');
+
+    console.log('🔍 Video request check:', isVideoRequest, 'for message:', message);
 
     // Handle video requests with YouTube API
     if (isVideoRequest) {
       console.log('🎥 Video search detected, using YouTube API...');
       
       // Extract the topic the user is asking about
-      const videoTopicRegex = /(?:find|show|get|search for)?\s*(?:a|me a|some)?\s*videos?(?:\s+about|\s+on|\s+for|\s+related to|\s+regarding)?\s*(.*?)(?:\?|$|\.)/i;
-      const topicMatch = message.match(videoTopicRegex);
-      const videoTopic = topicMatch ? topicMatch[1].trim() : message.replace(/find a video|show me a video|video about|find videos|search for video/gi, '').trim();
+      let videoTopic;
+      
+      // Handle the new multi-topic format
+      if (message.includes('Find educational videos about:')) {
+        videoTopic = message.replace('Find educational videos about:', '').trim();
+      } else {
+        const videoTopicRegex = /(?:find|show|get|search for)?\s*(?:a|me a|some)?\s*videos?(?:\s+about|\s+on|\s+for|\s+related to|\s+regarding)?\s*(.*?)(?:\?|$|\.)/i;
+        const topicMatch = message.match(videoTopicRegex);
+        videoTopic = topicMatch ? topicMatch[1].trim() : message.replace(/find a video|show me a video|video about|find videos|search for video/gi, '').trim();
+      }
       
       console.log('Extracted video topic:', videoTopic);
       
@@ -639,16 +680,19 @@ app.post('/api/chat', async (req, res) => {
         const videos = await searchYouTubeWithAPI(videoTopic);
         
         if (videos && videos.length > 0) {
-          let videoResponse = `I found some great educational videos about "${videoTopic}":\n\n`;
+          // Handle multiple topic queries more concisely
+          const isMultiTopic = videoTopic.includes(',') || videoTopic.includes('Find educational videos about:');
+          let responseIntro = isMultiTopic 
+            ? `Here are educational videos for the topics discussed:\n\n`
+            : `Educational videos about "${videoTopic}":\n\n`;
+          
+          let videoResponse = responseIntro;
           
           videos.slice(0, 5).forEach((video, index) => {
             videoResponse += `${index + 1}. ${video.title}\n`;
-            videoResponse += `   Channel: ${video.channelTitle}\n`;
-            videoResponse += `   Views: ${parseInt(video.viewCount).toLocaleString()}\n`;
+            videoResponse += `   ${video.channelTitle} • ${parseInt(video.viewCount).toLocaleString()} views\n`;
             videoResponse += `   ${video.url}\n\n`;
           });
-          
-          videoResponse += `\nThese videos have been saved to your search history for future reference.`;
           
           console.log('✅ Successfully found videos, sending response and returning early');
           return res.json({ 
@@ -692,7 +736,9 @@ app.post('/api/chat', async (req, res) => {
         temperature: 0.7
       });
       
-      res.json({ reply: completion.choices[0].message.content });
+      // Convert LaTeX formatting to Unicode symbols
+      const convertedReply = convertLatexToUnicode(completion.choices[0].message.content);
+      res.json({ reply: convertedReply });
     }
   } catch (error) {
     console.error('Error:', error);
@@ -829,7 +875,7 @@ app.post('/api/web-search', async (req, res) => {
          2. A list of 5 realistic YouTube video recommendations with well-known creators who actually make content about this topic
          
          Format each recommendation like this:
-         **[Video Title] by [Channel Name]**
+         [Video Title] by [Channel Name]
          - Brief description of what this video covers
          
          IMPORTANT: Do NOT include any YouTube URLs or video IDs. Only provide the titles, channel names, and descriptions. Users will search for these videos themselves on YouTube.
@@ -851,6 +897,151 @@ app.post('/api/web-search', async (req, res) => {
   } catch (error) {
     console.error('Web search error:', error?.response?.data || error.message);
     res.status(500).json({ error: 'Failed to perform web search' });
+  }
+});
+
+// Direct YouTube video search endpoint (no authentication required)
+app.post('/api/video-search', async (req, res) => {
+  const { query } = req.body;
+
+  if (!query) {
+    return res.status(400).json({ error: 'Search query is required' });
+  }
+
+  try {
+    console.log(`🎥 Direct YouTube search for: "${query}"`);
+    const videos = await searchYouTubeWithAPI(query, 5);
+    
+    res.json({ 
+      videos: videos,
+      query: query,
+      count: videos.length 
+    });
+  } catch (error) {
+    console.error('YouTube search error:', error.message);
+    res.status(500).json({ error: 'Failed to search YouTube videos' });
+  }
+});
+
+// Whiteboard drawing analysis endpoint
+app.post('/api/analyze-whiteboard', async (req, res) => {
+  try {
+    const { imageData, apiKey } = req.body;
+    
+    if (!apiKey) {
+      return res.status(401).json({ error: 'API key is required' });
+    }
+    
+    if (!imageData) {
+      return res.status(400).json({ error: 'Image data is required' });
+    }
+
+    console.log('🎨 Analyzing whiteboard drawing...');
+
+    const openai = new OpenAI({ apiKey: apiKey });
+    
+    // Create analysis prompt for the drawing
+    const analysisPrompt = `You are BALVIS, an advanced AI study assistant analyzing a student's whiteboard drawing. Focus on mathematical content and symbols.
+
+IMPORTANT: Look carefully for MATHEMATICAL SYMBOLS and EXPRESSIONS, not geometric shapes unless clearly intended as geometry problems.
+
+Please analyze this drawing and provide a clear, well-formatted response with the following sections:
+
+🔍 What I can see:
+[Focus on identifying mathematical symbols, equations, numbers, and expressions. If you see what looks like a square root symbol (√) with a number, that's likely a mathematical expression, NOT a geometric shape.]
+
+📚 Subject area:
+[Identify the mathematical field - algebra, arithmetic, geometry, calculus, etc.]
+
+💡 Explanation:
+[Explain the mathematical concepts. Use proper Unicode mathematical symbols: √, ², ³, ∞, π, ±, ≈, ≤, ≥, ∑, ∫, α, β, θ, etc.]
+
+📖 Study tips:
+[Provide relevant mathematical study tips]
+
+🎯 Next steps:
+[Suggest mathematical concepts to study next]
+
+CRITICAL SYMBOL RECOGNITION RULES:
+- If you see a checkmark-like symbol with a horizontal line and a number underneath, it's likely √ (square root)
+- Focus on mathematical interpretation before geometric interpretation
+- A rough drawing of √10 should be interpreted as "square root of 10", not as separate geometric shapes
+- Look for mathematical context clues like numbers, equals signs, operations
+- If unsure between mathematical symbol vs geometric shape, choose mathematical interpretation
+
+CRITICAL FORMATTING RULES - ABSOLUTELY NO LATEX:
+- NEVER EVER use LaTeX formatting like \\(anything\\) or \\[anything\\] 
+- NEVER use backslashes: NO \\sqrt, NO \\times, NO \\pi, NO \\frac
+- ALWAYS use Unicode symbols directly: √18, 3², π, ×, ÷, ∞
+- Write math as: "18 = 2 × 3²" NOT "\\(18 = 2 \\times 3^2\\)"
+- Write square roots as: "√18 = 3√2" NOT "\\(\\sqrt{18} = 3\\sqrt{2}\\)"
+- Write fractions as: "1/2" or "one half" NOT "\\(\\frac{1}{2}\\)"
+- Examples GOOD: √18 ≈ 4.24, x² + y² = z², π ≈ 3.14159, 2 × 3 = 6
+- Examples BAD: \\(\\sqrt{18}\\), \\(x^2\\), \\(\\pi\\), \\(\\times\\)
+
+ABSOLUTELY FORBIDDEN:
+- Any text containing \\( or \\)
+- Any text containing \\[ or \\]
+- Any backslash followed by letters like \\sqrt, \\frac, \\times, \\pi
+- Any LaTeX syntax whatsoever
+
+Use only plain text with Unicode mathematical symbols. This is critical for proper display.
+
+Be thorough but friendly, focusing on the mathematical content the student is working on.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o", // Use the current vision-enabled model
+      messages: [
+        {
+          role: "system",
+          content: "You are BALVIS, an advanced AI study assistant with visual analysis capabilities. Help students understand their drawings, diagrams, and handwritten work."
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: analysisPrompt
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageData,
+                detail: "high"
+              }
+            }
+          ]
+        }
+      ],
+      max_tokens: 1000,
+      temperature: 0.7
+    });
+
+    const analysis = completion.choices[0]?.message?.content || 'Unable to analyze the drawing.';
+
+    // Convert LaTeX formatting to Unicode symbols
+    const convertedAnalysis = convertLatexToUnicode(analysis);
+
+    console.log('✅ Whiteboard analysis completed');
+
+    res.json({
+      analysis: convertedAnalysis,
+      type: 'whiteboard_analysis',
+      suggestions: [
+        "Find related videos",
+        "Explain concepts further", 
+        "Generate practice problems",
+        "Create study guide"
+      ]
+    });
+
+  } catch (error) {
+    console.error('Whiteboard analysis error:', error);
+    if (error.message?.includes('billing')) {
+      res.status(402).json({ error: 'OpenAI API quota exceeded. Please check your billing.' });
+    } else {
+      res.status(500).json({ error: 'Failed to analyze whiteboard drawing' });
+    }
   }
 });
 

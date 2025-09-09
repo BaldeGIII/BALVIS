@@ -62,7 +62,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:5000/api/extract-pdf", {
+      const response = await fetch("http://localhost:3001/api/extract-pdf", {
         method: "POST",
         headers: {
           "X-API-Key": apiKey,
