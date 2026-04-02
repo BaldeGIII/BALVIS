@@ -1,4 +1,5 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import { apiUrl, createApiHeaders } from "../lib/api";
 
 interface TextSummarizerProps {
   onSummaryResult: (text: string, source: string) => void;
@@ -16,7 +17,6 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
   const [uploadError, setUploadError] = useState("");
   const [mode, setMode] = useState<"select" | "manual" | "upload">("select");
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -29,13 +29,6 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
-
-  // Handle click outside modal to close it
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (modalRef.current && !modalRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  };
 
   const handleManualSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,11 +55,9 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
     formData.append("file", file);
 
     try {
-      const response = await fetch("http://localhost:3001/api/extract-pdf", {
+      const response = await fetch(apiUrl("/api/extract-pdf"), {
         method: "POST",
-        headers: {
-          "X-API-Key": apiKey,
-        },
+        headers: createApiHeaders(apiKey),
         body: formData,
       });
 

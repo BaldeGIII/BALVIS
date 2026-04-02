@@ -17,6 +17,13 @@ const upload = multer({
    },
 });
 
+const DEFAULT_DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const allowedOrigins = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : DEFAULT_DEV_ORIGINS;
+
 const app = express();
 const port = 3001; // Changed from 5000 to 3001 to match frontend expectations
 
@@ -24,10 +31,55 @@ const port = 3001; // Changed from 5000 to 3001 to match frontend expectations
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 app.use(cors({
-  origin: 'http://localhost:5173', // React app URL
+  origin(origin, callback) {
+    if (!origin || corsOrigins.includes(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    callback(new Error(`Origin ${origin} is not allowed by CORS`));
+  },
   credentials: true // Enable credentials for cookies/sessions
 }));
 app.use(express.json());
+
+function resolveApiKey(...candidates) {
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim() !== '') {
+      return candidate.trim();
+    }
+  }
+
+  return '';
+}
+
+function getApiErrorDetails(error, fallbackMessage) {
+  if (error?.status === 429 || error?.code === 'insufficient_quota') {
+    return {
+      status: 429,
+      message: 'OpenAI API quota exceeded. Please check your billing or try another API key.',
+    };
+  }
+
+  if (error?.status === 401) {
+    return {
+      status: 401,
+      message: 'OpenAI rejected the API key. Please verify the key and try again.',
+    };
+  }
+
+  if (error?.status === 403) {
+    return {
+      status: 403,
+      message: 'This API key does not have permission to complete that request.',
+    };
+  }
+
+  return {
+    status: 500,
+    message: fallbackMessage,
+  };
+}
 
 // API Routes start here
 
@@ -651,8 +703,7 @@ function convertLatexToUnicode(text) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  // Get API key from environment variable or request header
-  const apiKey = process.env.OPENAI_API_KEY || req.headers['x-api-key'];
+  const apiKey = resolveApiKey(req.headers['x-api-key'], process.env.OPENAI_API_KEY);
   
   if (!apiKey) {
     return res.status(401).json({ error: 'API key is required' });
@@ -763,18 +814,13 @@ app.post('/api/chat', async (req, res) => {
     if (error.response) {
       console.error('API Response:', error.response.data);
     }
-    res.status(500).json({ error: 'Failed to process request' });
+    const apiError = getApiErrorDetails(error, 'Failed to process request');
+    res.status(apiError.status).json({ error: apiError.message });
   }
 });
 
 // Endpoint to extract text from a PDF file
 app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
-  
-  if (!apiKey) {
-    return res.status(401).json({ error: 'API key is required' });
-  }
-  
   if (!req.file) {
     return res.status(400).json({ error: 'No PDF file uploaded' });
   }
@@ -795,7 +841,7 @@ app.post('/api/extract-pdf', upload.single('file'), async (req, res) => {
 
 // Endpoint to summarize text
 app.post('/api/summarize', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
+  const apiKey = resolveApiKey(req.headers['x-api-key'], process.env.OPENAI_API_KEY);
   
   if (!apiKey) {
     return res.status(401).json({ error: 'API key is required' });
@@ -829,7 +875,8 @@ Summary:`;
     res.json({ summary });
   } catch (error) {
     console.error('Error summarizing text:', error);
-    res.status(500).json({ error: 'Failed to summarize text' });
+    const apiError = getApiErrorDetails(error, 'Failed to summarize text');
+    res.status(apiError.status).json({ error: apiError.message });
   }
 });
 
@@ -864,7 +911,7 @@ app.post('/api/log-video-search', async (req, res) => {
 // Update the web-search endpoint to better handle video requests
 
 app.post('/api/web-search', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
+  const apiKey = resolveApiKey(req.headers['x-api-key'], process.env.OPENAI_API_KEY);
   const { query, user_location, search_context_size } = req.body;
 
   if (!apiKey) {
@@ -914,7 +961,8 @@ app.post('/api/web-search', async (req, res) => {
     res.json({ output_text: response });
   } catch (error) {
     console.error('Web search error:', error?.response?.data || error.message);
-    res.status(500).json({ error: 'Failed to perform web search' });
+    const apiError = getApiErrorDetails(error, 'Failed to perform web search');
+    res.status(apiError.status).json({ error: apiError.message });
   }
 });
 
@@ -944,7 +992,8 @@ app.post('/api/video-search', async (req, res) => {
 // Whiteboard drawing analysis endpoint
 app.post('/api/analyze-whiteboard', async (req, res) => {
   try {
-    const { imageData, apiKey } = req.body;
+    const { imageData, apiKey: requestApiKey } = req.body;
+    const apiKey = resolveApiKey(requestApiKey, req.headers['x-api-key'], process.env.OPENAI_API_KEY);
     
     if (!apiKey) {
       return res.status(401).json({ error: 'API key is required' });
@@ -1058,11 +1107,11 @@ Be thorough but friendly, focusing on the mathematical content the student is wo
 
   } catch (error) {
     console.error('Whiteboard analysis error:', error);
-    if (error.message?.includes('billing')) {
-      res.status(402).json({ error: 'OpenAI API quota exceeded. Please check your billing.' });
-    } else {
-      res.status(500).json({ error: 'Failed to analyze whiteboard drawing' });
-    }
+    const apiError = getApiErrorDetails(
+      error,
+      'Failed to analyze whiteboard drawing'
+    );
+    res.status(apiError.status).json({ error: apiError.message });
   }
 });
 

@@ -1,6 +1,34 @@
 import React, { useEffect } from "react";
 import { MdMic, MdMicOff } from "react-icons/md";
 
+interface SpeechRecognitionResultItem {
+  transcript: string;
+}
+
+interface SpeechRecognitionEventLike {
+  results: ArrayLike<ArrayLike<SpeechRecognitionResultItem>>;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognitionInstance;
+}
+
+declare global {
+  interface Window {
+    SpeechRecognition?: SpeechRecognitionConstructor;
+    webkitSpeechRecognition?: SpeechRecognitionConstructor;
+  }
+}
+
 interface VoiceInputProps {
   isListening: boolean;
   setIsListening: (listening: boolean) => void;
@@ -15,36 +43,39 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
   disabled,
 }) => {
   useEffect(() => {
-    if (
-      (typeof window !== "undefined" && "SpeechRecognition" in window) ||
-      "webkitSpeechRecognition" in window
-    ) {
-      const SpeechRecognition =
-        window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
-
-      recognition.continuous = false;
-      recognition.interimResults = false;
-
-      recognition.onresult = (event) => {
-        const text = event.results[0][0].transcript;
-        onSpeechResult(text);
-        setIsListening(false);
-      };
-
-      recognition.onend = () => {
-        setIsListening(false);
-      };
-
-      if (isListening) {
-        recognition.start();
-      }
-
-      return () => {
-        recognition.stop();
-      };
+    if (typeof window === "undefined") {
+      return;
     }
-  }, [isListening]);
+
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onresult = (event: SpeechRecognitionEventLike) => {
+      const text = event.results[0]?.[0]?.transcript ?? "";
+      onSpeechResult(text);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    if (isListening) {
+      recognition.start();
+    }
+
+    return () => {
+      recognition.stop();
+    };
+  }, [isListening, onSpeechResult, setIsListening]);
 
   return (
     <button

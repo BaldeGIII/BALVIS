@@ -1,48 +1,13 @@
 import React, { useState } from "react";
 import Whiteboard from "./Whiteboard";
+import { apiUrl, createApiHeaders } from "../lib/api";
 
-// 🤖 JARVIS-Inspired Features for BALVIS
-const JARVIS_FEATURES = {
+const AVAILABLE_FEATURES = {
   "Core Functions": ["Find Educational Videos", "Summarize Text"],
-  "Voice Integration": [
-    "Voice Commands",
-    "Voice Responses",
-    "Hands-free Study",
-    "Voice Note-taking",
-  ],
-  "Smart Study Assistant": [
-    "Study Schedule AI",
-    "Progress Tracking",
-    "Adaptive Learning",
-    "Smart Reminders",
-  ],
-  "Multimodal Capabilities": [
-    "Document Analysis",
-    "Image Recognition",
-    "Diagram Explanation",
-    "Whiteboard Integration",
-  ],
-  "Advanced Research Tools": [
-    "Real-time Web Search",
-    "Paper Summarization",
-    "Citation Management",
-    "Fact Checking",
-  ],
-  "Personalized Learning": [
-    "Learning Style Detection",
-    "Knowledge Mapping",
-    "Weakness Identification",
-    "Custom Curricula",
-  ],
-  "Smart Notifications & Automation": [
-    "Study Reminders",
-    "Deadline Tracking",
-    "Focus Mode",
-    "Progress Reports",
-  ],
+  "Multimodal Capabilities": ["Whiteboard Integration"],
 } as const;
 
-type CategoryKey = keyof typeof JARVIS_FEATURES;
+type CategoryKey = keyof typeof AVAILABLE_FEATURES;
 
 interface QuickActionsProps {
   onActionSelect: (action: string) => void;
@@ -97,24 +62,16 @@ const QuickActions: React.FC<QuickActionsProps> = ({
 
     try {
       const apiKey = localStorage.getItem("openai_api_key");
-      if (!apiKey) {
-        alert("Please set your OpenAI API key first");
-        return;
-      }
-
-      const response = await fetch(
-        "http://localhost:3001/api/analyze-whiteboard",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            imageData,
-            apiKey,
-          }),
-        }
-      );
+      const response = await fetch(apiUrl("/api/analyze-whiteboard"), {
+        method: "POST",
+        headers: createApiHeaders(apiKey ?? "", {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({
+          imageData,
+          apiKey: apiKey || undefined,
+        }),
+      });
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status}`);
@@ -139,11 +96,14 @@ const QuickActions: React.FC<QuickActionsProps> = ({
     setShowWhiteboard(false);
   };
 
+  const getCategoryIcon = (category: CategoryKey) =>
+    category === "Core Functions" ? "🎯" : "🔄";
+
   return (
     <div className="space-y-4">
       {/* Category Tabs */}
       <div className="flex flex-wrap gap-2 mb-4">
-        {(Object.keys(JARVIS_FEATURES) as CategoryKey[]).map((category) => (
+        {(Object.keys(AVAILABLE_FEATURES) as CategoryKey[]).map((category) => (
           <button
             key={category}
             onClick={() => handleCategoryClick(category)}
@@ -153,20 +113,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
                 : "bg-slate-100/90 dark:bg-white/20 hover:bg-blue-100 dark:hover:bg-white/30 text-gray-700 dark:text-gray-300"
             }`}
           >
-            {category === "Core Functions"
-              ? "🎯"
-              : category === "Voice Integration"
-              ? "🎤"
-              : category === "Smart Study Assistant"
-              ? "📚"
-              : category === "Multimodal Capabilities"
-              ? "🔄"
-              : category === "Advanced Research Tools"
-              ? "🔍"
-              : category === "Personalized Learning"
-              ? "🧠"
-              : "⚡"}{" "}
-            {category}
+            {getCategoryIcon(category)} {category}
           </button>
         ))}
       </div>
@@ -174,7 +121,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       {/* Action Buttons - Only show when a category is selected */}
       {activeCategory && (
         <div className="flex flex-wrap gap-2">
-          {JARVIS_FEATURES[activeCategory].map((action: string) => (
+          {AVAILABLE_FEATURES[activeCategory].map((action: string) => (
             <button
               key={action}
               onClick={() => handleActionSelect(action)}
@@ -195,19 +142,13 @@ const QuickActions: React.FC<QuickActionsProps> = ({
         </div>
       )}
 
-      {/* Feature Description - Only show when a non-core category is selected */}
-      {activeCategory && activeCategory !== "Core Functions" && (
+      {/* Feature Description - Only show for the whiteboard category */}
+      {activeCategory === "Multimodal Capabilities" && (
         <div className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50/50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-          <span className="font-medium">🤖 JARVIS Mode:</span> These advanced AI
-          features are coming soon to make BALVIS your ultimate study companion!
-          {activeCategory === "Multimodal Capabilities" && (
-            <div className="mt-2">
-              <span className="font-medium text-green-600">
-                ✅ Whiteboard Integration is now available!
-              </span>{" "}
-              Draw diagrams, equations, or notes and let BALVIS analyze them.
-            </div>
-          )}
+          <span className="font-medium text-green-600">
+            ✅ Whiteboard Integration is ready.
+          </span>{" "}
+          Draw diagrams, equations, or notes and let BALVIS analyze them.
         </div>
       )}
 
