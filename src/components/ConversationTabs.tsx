@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { FiPlus, FiX } from "react-icons/fi";
 
 interface Tab {
   id: string;
@@ -57,16 +58,16 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-      <div className="max-w-5xl mx-auto w-full">
-        <div className="flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+    <div className="px-4 pb-1 sm:px-6">
+      <div className="mx-auto w-full max-w-[88rem]">
+        <div className="flex items-center gap-2 overflow-x-auto rounded-[24px] border soft-divider bg-[color:var(--surface)] px-3 py-2.5 shadow-[0_10px_22px_rgba(63,43,25,0.06)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
           {tabs.map((tab) => (
             <div
               key={tab.id}
-              className={`flex items-center min-w-0 max-w-xs group ${
+              className={`group flex min-w-0 max-w-xs items-center rounded-full border transition ${
                 tab.id === activeTabId
-                  ? "bg-blue-50 dark:bg-blue-900/20 border-b-2 border-blue-500"
-                  : "hover:bg-gray-50 dark:hover:bg-gray-700"
+                  ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]"
+                  : "border-transparent bg-white/50 text-[color:var(--muted)] hover:border-[color:var(--surface-border)] hover:bg-white/80 dark:bg-black/10"
               }`}
             >
               {editingTabId === tab.id ? (
@@ -76,15 +77,14 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                   onChange={(e) => setEditingTitle(e.target.value)}
                   onBlur={handleSaveEdit}
                   onKeyDown={handleKeyPress}
-                  className="px-3 py-2 bg-transparent border-none outline-none text-sm font-medium min-w-0 flex-1"
+                  className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm font-medium outline-none"
                   autoFocus
                 />
               ) : (
                 <button
                   onClick={() => onTabSelect(tab.id)}
                   onDoubleClick={() => handleStartEdit(tab)}
-                  className="px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 
-                           truncate min-w-0 flex-1 text-left"
+                  className="min-w-0 flex-1 truncate px-4 py-2.5 text-left text-sm font-semibold"
                   title={tab.title}
                 >
                   {tab.title}
@@ -96,45 +96,20 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                   e.stopPropagation();
                   onTabDelete(tab.id);
                 }}
-                className="p-1.5 mr-1 hover:bg-red-100 dark:hover:bg-red-900/50 
-                         text-red-600 dark:text-red-400 rounded-md transition-all duration-200 
-                         hover:scale-110 opacity-0 group-hover:opacity-100"
+                className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--muted)] opacity-0 transition group-hover:opacity-100 hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
                 title="Delete conversation"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="currentColor"
-                  viewBox="0 0 20 20"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                    clipRule="evenodd"
-                  />
-                </svg>
+                <FiX className="h-4 w-4" />
               </button>
             </div>
           ))}
 
           <button
             onClick={onTabCreate}
-            className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 
-                     hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors ml-2"
+            className="ml-1 inline-flex h-10 min-w-[40px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-white/60 px-3 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
             title="New conversation"
           >
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 4v16m8-8H4"
-              />
-            </svg>
+            <FiPlus className="h-4 w-4" />
           </button>
         </div>
       </div>

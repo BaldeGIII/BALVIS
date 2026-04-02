@@ -1,23 +1,30 @@
 import React, { useRef, useState, useEffect } from "react";
+import {
+  FiDownload,
+  FiEdit3,
+  FiTrash2,
+  FiX,
+  FiZap,
+} from "react-icons/fi";
 
 interface WhiteboardProps {
   onAnalyze: (imageData: string) => void;
-  onClose?: () => void; // Optional, only used for modal mode
+  onClose?: () => void;
   isAnalyzing: boolean;
-  isModal?: boolean; // Add prop to determine if it's a modal or tab
+  isModal?: boolean;
 }
 
 const Whiteboard: React.FC<WhiteboardProps> = ({
   onAnalyze,
   onClose,
   isAnalyzing,
-  isModal = false, // Default to tab mode
+  isModal = false,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentTool, setCurrentTool] = useState<"pen" | "eraser">("pen");
   const [brushSize, setBrushSize] = useState(3);
-  const [brushColor, setBrushColor] = useState("#000000");
+  const [brushColor, setBrushColor] = useState("#1d2824");
   const [lastPos, setLastPos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
@@ -27,7 +34,6 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Set initial canvas properties
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.fillStyle = "white";
@@ -143,137 +149,131 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     link.click();
   };
 
+  const toolButtonClass = (tool: "pen" | "eraser") =>
+    `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+      currentTool === tool
+        ? "bg-[color:var(--accent)] text-white"
+        : "bg-white/80 text-[color:var(--muted)] hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
+    }`;
+
   return (
     <div
       className={
         isModal
-          ? "fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50"
-          : "flex flex-col h-full w-full"
+          ? "fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4"
+          : "flex h-full w-full flex-col"
       }
     >
       <div
         className={
           isModal
-            ? "bg-white rounded-lg shadow-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden"
-            : "bg-white h-full w-full flex flex-col"
+            ? "flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[30px] panel-surface"
+            : "flex h-full w-full flex-col bg-transparent"
         }
       >
-        {/* Header */}
-        <div className="flex justify-between items-center p-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">🎨</span>
-            <h3 className="text-xl font-bold text-gray-800">
-              BALVIS Whiteboard
+        <div className="flex flex-wrap items-start justify-between gap-4 border-b soft-divider px-5 py-5 sm:px-6">
+          <div>
+            <p className="caption-label mb-2">Whiteboard</p>
+            <h3 className="text-2xl font-semibold text-[color:var(--text)]">
+              Sketch it out, then ask BALVIS to read it back with you
             </h3>
+            <p className="mt-2 max-w-2xl text-sm leading-6 text-[color:var(--muted)]">
+              Use the canvas for equations, diagrams, rough notes, or concept
+              maps. When you're ready, BALVIS can analyze what you drew.
+            </p>
           </div>
+
           {isModal && onClose && (
             <button
               onClick={onClose}
-              className="text-gray-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 
-                       rounded-lg p-2.5 transition-all duration-200 hover:scale-105 
-                       border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700
-                       shadow-sm hover:shadow-md active:scale-95 min-w-[44px] min-h-[44px]
-                       flex items-center justify-center"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-white/70 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
               disabled={isAnalyzing}
               title="Close whiteboard"
             >
-              <span className="text-xl font-bold leading-none text-gray-700 dark:text-gray-300">
-                ×
-              </span>
+              <FiX className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        {/* Toolbar */}
-        <div className="flex flex-wrap items-center justify-between p-4 border-b border-gray-200 bg-gray-50">
-          {/* Drawing Tools */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Tool:</label>
-              <button
-                onClick={() => setCurrentTool("pen")}
-                className={`px-3 py-1 rounded text-sm ${
-                  currentTool === "pen"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
-              >
-                ✏️ Pen
+        <div className="grid gap-4 border-b soft-divider bg-[color:var(--surface)]/80 px-5 py-4 sm:grid-cols-[1.2fr_auto] sm:items-center sm:px-6">
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/70 p-1 dark:bg-black/10">
+              <button onClick={() => setCurrentTool("pen")} className={toolButtonClass("pen")}>
+                <FiEdit3 className="h-4 w-4" />
+                Pen
               </button>
               <button
                 onClick={() => setCurrentTool("eraser")}
-                className={`px-3 py-1 rounded text-sm ${
-                  currentTool === "eraser"
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                }`}
+                className={toolButtonClass("eraser")}
               >
-                🧽 Eraser
+                <FiTrash2 className="h-4 w-4" />
+                Erase
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Size:</label>
+            <label className="inline-flex items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-sm text-[color:var(--muted)] dark:bg-black/10">
+              Stroke
               <input
                 type="range"
                 min="1"
                 max="20"
                 value={brushSize}
                 onChange={(e) => setBrushSize(Number(e.target.value))}
-                className="w-20"
+                className="w-24 accent-[color:var(--accent)]"
               />
-              <span className="text-sm text-gray-600 w-8">{brushSize}px</span>
-            </div>
+              <span className="min-w-[2.5rem] text-right font-semibold text-[color:var(--text)]">
+                {brushSize}px
+              </span>
+            </label>
 
             {currentTool === "pen" && (
-              <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">
-                  Color:
-                </label>
+              <label className="inline-flex items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-sm text-[color:var(--muted)] dark:bg-black/10">
+                Ink
                 <input
                   type="color"
                   value={brushColor}
                   onChange={(e) => setBrushColor(e.target.value)}
-                  className="w-8 h-8 rounded border border-gray-300"
+                  className="h-8 w-8 rounded-full border-0 bg-transparent"
                 />
-              </div>
+              </label>
             )}
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <button
               onClick={clearCanvas}
-              className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200 text-sm"
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
               disabled={isAnalyzing}
             >
-              🗑️ Clear
+              <FiTrash2 className="h-4 w-4" />
+              Clear
             </button>
             <button
               onClick={downloadDrawing}
-              className="px-4 py-2 bg-green-100 text-green-700 rounded hover:bg-green-200 text-sm"
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
               disabled={isAnalyzing}
             >
-              💾 Save
+              <FiDownload className="h-4 w-4" />
+              Save image
             </button>
             <button
               onClick={analyzeDrawing}
               disabled={isAnalyzing}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 text-sm font-medium"
+              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isAnalyzing ? "🔄 Analyzing..." : "🤖 Analyze with BALVIS"}
+              <FiZap className="h-4 w-4" />
+              {isAnalyzing ? "Analyzing" : "Analyze board"}
             </button>
           </div>
         </div>
 
-        {/* Canvas */}
-        <div className="flex-1 p-4 bg-gray-100 overflow-auto">
-          <div className="bg-white border-2 border-gray-300 rounded-lg overflow-hidden shadow-inner">
+        <div className="flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(248,244,236,0.55),rgba(234,223,207,0.52))] p-4 dark:bg-[linear-gradient(180deg,rgba(16,19,18,0.8),rgba(23,28,27,0.85))] sm:p-6">
+          <div className="mx-auto h-full rounded-[28px] border border-[color:var(--surface-border)] bg-white p-3 shadow-[0_18px_38px_rgba(64,41,25,0.08)]">
             <canvas
               ref={canvasRef}
               width={1200}
               height={700}
-              className="block cursor-crosshair"
+              className="block h-auto w-full cursor-crosshair rounded-[22px]"
               onMouseDown={startDrawing}
               onMouseMove={draw}
               onMouseUp={stopDrawing}
@@ -286,28 +286,25 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           </div>
         </div>
 
-        {/* Instructions */}
-        <div className="p-4 bg-gray-50 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            <p className="font-medium mb-2">
-              💡 What can you draw for BALVIS to analyze:
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <strong>📐 Math:</strong> Equations, graphs, geometric shapes
-              </div>
-              <div>
-                <strong>🔬 Science:</strong> Diagrams, molecular structures,
-                circuits
-              </div>
-              <div>
-                <strong>📚 Study:</strong> Mind maps, flowcharts, concept
-                diagrams
-              </div>
-              <div>
-                <strong>✍️ Notes:</strong> Handwritten text, sketches,
-                annotations
-              </div>
+        <div className="border-t soft-divider bg-[color:var(--surface)]/80 px-5 py-4 sm:px-6">
+          <div className="grid gap-4 text-sm text-[color:var(--muted)] md:grid-cols-3">
+            <div>
+              <p className="font-semibold text-[color:var(--text)]">Good for</p>
+              <p className="mt-1 leading-6">
+                Equations, worked examples, concept maps, and rough visual notes.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-[color:var(--text)]">Try writing</p>
+              <p className="mt-1 leading-6">
+                A problem statement, a labeled diagram, or the steps you took to solve something.
+              </p>
+            </div>
+            <div>
+              <p className="font-semibold text-[color:var(--text)]">Then ask for</p>
+              <p className="mt-1 leading-6">
+                A clearer explanation, study tips, related videos, or a cleaner next step.
+              </p>
             </div>
           </div>
         </div>

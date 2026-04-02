@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { FiPlayCircle } from "react-icons/fi";
 
 interface MessageBubbleProps {
   message: {
@@ -278,7 +279,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               className="my-3 p-4 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800"
             >
               <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-1">
-                📺 {title}
+                {title}
               </h4>
               <p className="text-blue-700 dark:text-blue-300 text-sm mb-2">
                 by {channel}
@@ -319,43 +320,42 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       } mb-6`}
     >
       <div
-        className={`relative max-w-[85%] md:max-w-[70%] animate-slide-in p-4 
+        className={`relative max-w-[88%] animate-slide-in p-5 sm:max-w-[72%]
         ${
           message.type === "user"
-            ? "rounded-[20px] rounded-tr-sm bg-gradient-to-br from-blue-600 to-blue-700 text-white shadow-lg"
-            : "rounded-[20px] rounded-tl-sm bg-slate-100 dark:bg-gray-700 shadow-lg border border-slate-200 dark:border-gray-600"
+            ? "rounded-[26px] rounded-br-[10px] bg-[linear-gradient(135deg,#1f6b5d_0%,#2e8474_100%)] text-white shadow-[0_20px_45px_rgba(31,107,93,0.24)]"
+            : "panel-strong rounded-[26px] rounded-bl-[10px]"
         }
-        transform transition-all duration-200 hover:scale-[1.02]`}
+        transition-transform duration-200 hover:translate-y-[-1px]`}
       >
         <div className="flex items-center gap-2 mb-2">
           <div
-            className={`w-6 h-6 rounded-full flex items-center justify-center
-            text-sm font-medium 
+            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold
             ${
               message.type === "user"
-                ? "bg-black/10 text-black"
-                : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white"
+                ? "bg-white/16 text-white"
+                : "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
             }`}
           >
-            {message.type === "user" ? "" : "AI"}
+            {message.type === "user" ? "You" : "B"}
           </div>
           <span
-            className={`text-sm font-medium tracking-wide 
+            className={`text-sm font-semibold tracking-wide 
             ${
               message.type === "user"
-                ? "text-black"
-                : "text-gray-900 dark:text-white"
+                ? "text-white/88"
+                : "text-[color:var(--muted)]"
             }`}
           >
-            {message.type === "user" ? "You" : "BALVIS"}
+            {message.type === "user" ? "You" : "Balvis"}
           </span>
         </div>
         <div
-          className={`text-base leading-relaxed tracking-wide font-normal
+          className={`text-[15px] leading-7 font-medium
           ${
             message.type === "user"
               ? "text-white"
-              : "text-gray-900 dark:text-white"
+              : "text-[color:var(--text)]"
           }`}
         >
           {processedContent || formatMessage(message.content)}
@@ -377,36 +377,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   )}`;
                   onVideoSearch(combinedQuery);
                 }}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg 
-                       bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40
-                       text-blue-700 dark:text-blue-300 text-sm font-medium
-                       transition-colors duration-200 border border-blue-200 dark:border-blue-800"
+                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--accent)] transition hover:bg-[color:var(--accent-soft)]"
               >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"
-                  />
-                </svg>
+                <FiPlayCircle className="h-4 w-4" />
                 Find related videos
               </button>
             </div>
           )}
-
-        <div
-          className={`absolute top-0 ${
-            message.type === "user"
-              ? "-right-2 border-l-transparent border-l-[12px] border-blue-700"
-              : "-left-2 border-r-transparent border-r-[12px] border-white dark:border-gray-700"
-          } border-t-[12px] border-t-transparent`}
-        ></div>
       </div>
     </div>
   );

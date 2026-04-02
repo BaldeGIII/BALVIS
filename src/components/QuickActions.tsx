@@ -1,13 +1,33 @@
 import React, { useState } from "react";
+import {
+  FiArrowRight,
+  FiEdit3,
+  FiFileText,
+  FiSearch,
+} from "react-icons/fi";
 import Whiteboard from "./Whiteboard";
 import { apiUrl, createApiHeaders } from "../lib/api";
 
-const AVAILABLE_FEATURES = {
-  "Core Functions": ["Find Educational Videos", "Summarize Text"],
-  "Multimodal Capabilities": ["Whiteboard Integration"],
-} as const;
-
-type CategoryKey = keyof typeof AVAILABLE_FEATURES;
+const ACTIONS = [
+  {
+    label: "Find a video",
+    detail: "Search for a few useful explanations on YouTube.",
+    command: "I want to find a video about",
+    icon: FiSearch,
+  },
+  {
+    label: "Summarize notes",
+    detail: "Condense a chapter, lecture, or prompt into the essentials.",
+    command: "Summarize text",
+    icon: FiFileText,
+  },
+  {
+    label: "Open whiteboard",
+    detail: "Sketch a diagram or equation, then analyze it.",
+    command: "Whiteboard Integration",
+    icon: FiEdit3,
+  },
+] as const;
 
 interface QuickActionsProps {
   onActionSelect: (action: string) => void;
@@ -18,45 +38,22 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   onActionSelect,
   onCreateWhiteboardTab,
 }) => {
-  const [activeCategory, setActiveCategory] = useState<CategoryKey | null>(
-    null
-  ); // Start with no category selected
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
 
-  // Handle action selection with special cases for existing functionality
-  const handleActionSelect = async (action: string) => {
-    switch (action) {
-      case "Find Educational Videos":
-        onActionSelect("I want to find a video about");
-        break;
-      case "Summarize Text":
-        onActionSelect("Summarize text");
-        break;
-      case "Whiteboard Integration":
-        if (onCreateWhiteboardTab) {
-          onCreateWhiteboardTab();
-        } else {
-          setShowWhiteboard(true);
-        }
-        break;
-      default:
-        // For now, just show what the feature would do
-        onActionSelect(
-          `🚧 Coming Soon: ${action} - This JARVIS-inspired feature will be implemented soon!`
-        );
-        break;
+  const handleActionSelect = (command: string) => {
+    if (command === "Whiteboard Integration") {
+      if (onCreateWhiteboardTab) {
+        onCreateWhiteboardTab();
+      } else {
+        setShowWhiteboard(true);
+      }
+      return;
     }
-    // Collapse the category after action selection
-    setActiveCategory(null);
+
+    onActionSelect(command);
   };
 
-  // Handle category click - toggle visibility
-  const handleCategoryClick = (category: CategoryKey) => {
-    setActiveCategory(activeCategory === category ? null : category);
-  };
-
-  // Handle whiteboard analysis
   const handleWhiteboardAnalysis = async (imageData: string) => {
     setIsAnalyzing(true);
 
@@ -78,85 +75,50 @@ const QuickActions: React.FC<QuickActionsProps> = ({
       }
 
       const result = await response.json();
-
-      // Close whiteboard and send analysis as message
       setShowWhiteboard(false);
-      onActionSelect(
-        `🎨 **Whiteboard Analysis Complete!**\n\n${result.analysis}`
-      );
+      onActionSelect(`Whiteboard notes\n\n${result.analysis}`);
     } catch (error) {
       console.error("Whiteboard analysis error:", error);
-      alert("Failed to analyze whiteboard. Please try again.");
+      alert("Failed to analyze the whiteboard. Please try again.");
     } finally {
       setIsAnalyzing(false);
     }
   };
 
-  const handleCloseWhiteboard = () => {
-    setShowWhiteboard(false);
-  };
-
-  const getCategoryIcon = (category: CategoryKey) =>
-    category === "Core Functions" ? "🎯" : "🔄";
-
   return (
-    <div className="space-y-4">
-      {/* Category Tabs */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {(Object.keys(AVAILABLE_FEATURES) as CategoryKey[]).map((category) => (
-          <button
-            key={category}
-            onClick={() => handleCategoryClick(category)}
-            className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 ${
-              activeCategory === category
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-slate-100/90 dark:bg-white/20 hover:bg-blue-100 dark:hover:bg-white/30 text-gray-700 dark:text-gray-300"
-            }`}
-          >
-            {getCategoryIcon(category)} {category}
-          </button>
-        ))}
+    <div className="space-y-3">
+      <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 sm:flex-wrap sm:overflow-visible">
+        {ACTIONS.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <button
+              key={item.label}
+              type="button"
+              onClick={() => handleActionSelect(item.command)}
+              className="group flex min-h-[56px] min-w-[220px] flex-none items-center gap-3 rounded-[20px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[color:var(--accent)] hover:bg-white dark:bg-black/10 sm:min-w-0 sm:flex-1"
+            >
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                <Icon className="h-4.5 w-4.5" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-sm font-semibold text-[color:var(--text)]">
+                  {item.label}
+                </h3>
+                <p className="mt-0.5 hidden text-xs leading-5 text-[color:var(--muted)] sm:block">
+                  {item.detail}
+                </p>
+              </div>
+              <FiArrowRight className="h-4 w-4 shrink-0 text-[color:var(--muted)] transition group-hover:translate-x-0.5 group-hover:text-[color:var(--accent)]" />
+            </button>
+          );
+        })}
       </div>
 
-      {/* Action Buttons - Only show when a category is selected */}
-      {activeCategory && (
-        <div className="flex flex-wrap gap-2">
-          {AVAILABLE_FEATURES[activeCategory].map((action: string) => (
-            <button
-              key={action}
-              onClick={() => handleActionSelect(action)}
-              className={`px-4 py-2 rounded-xl backdrop-blur-sm transition-all duration-200 text-sm ${
-                activeCategory === "Core Functions" ||
-                action === "Whiteboard Integration"
-                  ? "bg-green-100/90 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-800/50 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-700"
-                  : "bg-slate-100/90 dark:bg-white/20 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-gray-800 dark:text-white border border-slate-200 dark:border-white/20"
-              }`}
-            >
-              {activeCategory === "Core Functions" ||
-              action === "Whiteboard Integration"
-                ? "✅"
-                : "🚧"}{" "}
-              {action}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Feature Description - Only show for the whiteboard category */}
-      {activeCategory === "Multimodal Capabilities" && (
-        <div className="text-xs text-gray-600 dark:text-gray-400 bg-blue-50/50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200 dark:border-blue-800">
-          <span className="font-medium text-green-600">
-            ✅ Whiteboard Integration is ready.
-          </span>{" "}
-          Draw diagrams, equations, or notes and let BALVIS analyze them.
-        </div>
-      )}
-
-      {/* Whiteboard Modal */}
       {showWhiteboard && (
         <Whiteboard
           onAnalyze={handleWhiteboardAnalysis}
-          onClose={handleCloseWhiteboard}
+          onClose={() => setShowWhiteboard(false)}
           isAnalyzing={isAnalyzing}
           isModal={true}
         />

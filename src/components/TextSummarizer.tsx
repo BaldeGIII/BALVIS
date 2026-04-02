@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { FiArrowLeft, FiFileText, FiUploadCloud, FiX } from "react-icons/fi";
 import { apiUrl, createApiHeaders } from "../lib/api";
 
 interface TextSummarizerProps {
@@ -18,7 +19,6 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
   const [mode, setMode] = useState<"select" | "manual" | "upload">("select");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Handle escape key to close modal
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -30,11 +30,9 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  const handleManualSubmit = async (e: React.FormEvent) => {
+  const handleManualSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!text.trim()) return;
-
-    // Pass the text directly to the parent component for processing
     onSummaryResult(text, "manual");
   };
 
@@ -42,9 +40,8 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Only accept PDF files
     if (file.type !== "application/pdf") {
-      setUploadError("Please upload a PDF file.");
+      setUploadError("Please choose a PDF file.");
       return;
     }
 
@@ -64,269 +61,185 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
-      // Send the extracted text to be summarized
       onSummaryResult(data.text, "pdf");
     } catch (error) {
       console.error("Error extracting text from PDF:", error);
-      setUploadError("Failed to process PDF. Please try again.");
+      setUploadError("I couldn't read that PDF. Try another file or paste the text instead.");
       setIsUploading(false);
     }
   };
 
-  // Common content based on mode
-  const renderContent = () => {
-    if (mode === "select") {
-      return (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              How would you like to summarize text?
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-              aria-label="Close"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-          <div className="flex flex-col gap-4">
-            <button
-              onClick={() => setMode("upload")}
-              className="px-6 py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center gap-3 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              Upload a PDF
-            </button>
-            <button
-              onClick={() => setMode("manual")}
-              className="px-6 py-4 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg flex items-center justify-center gap-3 transition-colors"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                />
-              </svg>
-              Enter Text Manually
-            </button>
-            <button
-              onClick={onClose}
-              className="px-6 py-3 mt-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </>
-      );
-    }
+  const renderHeader = (title: string, description: string) => (
+    <div className="flex items-start justify-between gap-4">
+      <div>
+        <p className="caption-label mb-2">Summarize</p>
+        <h3 className="text-2xl font-semibold text-[color:var(--text)]">
+          {title}
+        </h3>
+        <p className="mt-2 max-w-xl text-sm leading-6 text-[color:var(--muted)]">
+          {description}
+        </p>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+        aria-label="Close"
+      >
+        <FiX className="h-4 w-4" />
+      </button>
+    </div>
+  );
 
-    if (mode === "upload") {
-      return (
-        <>
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-              Upload PDF to Summarize
-            </h3>
-            <button
-              onClick={onClose}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
-            >
-              <svg
-                className="w-6 h-6"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
-
-          <div className="mb-6">
-            <div
-              className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8
-                        flex flex-col items-center justify-center cursor-pointer hover:border-blue-500 dark:hover:border-blue-400 transition-colors"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <svg
-                className="w-12 h-12 text-gray-400 dark:text-gray-500 mb-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                />
-              </svg>
-              <p className="text-gray-600 dark:text-gray-300 text-center">
-                Click to upload a PDF file or drag and drop
-              </p>
-              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
-                Only PDF files are supported
-              </p>
-              <input
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="application/pdf"
-                onChange={handleFileUpload}
-              />
-            </div>
-            {isUploading && (
-              <div className="mt-3 flex justify-center items-center text-blue-500">
-                <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  ></circle>
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  ></path>
-                </svg>
-                Processing PDF...
-              </div>
-            )}
-            {uploadError && (
-              <div className="mt-3 text-red-500 text-sm">{uploadError}</div>
-            )}
-          </div>
-
-          <div className="flex justify-between gap-3">
-            <button
-              onClick={() => setMode("select")}
-              className="px-5 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-              disabled={isUploading}
-            >
-              Back
-            </button>
-            <button
-              onClick={onClose}
-              className="px-5 py-2 text-white bg-red-500 hover:bg-red-600 rounded-lg"
-              disabled={isUploading}
-            >
-              Cancel
-            </button>
-          </div>
-        </>
-      );
-    }
-
+  if (mode === "select") {
     return (
-      <>
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-            Enter Text to Summarize
-          </h3>
+      <div className="p-6 sm:p-7">
+        {renderHeader(
+          "Turn something dense into something usable",
+          "Choose how you'd like to bring in the material. BALVIS can summarize pasted notes or pull text from a PDF first."
+        )}
+
+        <div className="mt-6 grid gap-4 md:grid-cols-2">
           <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 dark:text-gray-300 dark:hover:text-white"
+            type="button"
+            onClick={() => setMode("upload")}
+            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white dark:bg-black/10"
           >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
-              />
-            </svg>
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+              <FiUploadCloud className="h-5 w-5" />
+            </div>
+            <h4 className="mt-5 text-base font-semibold text-[color:var(--text)]">
+              Upload a PDF
+            </h4>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              Best for lecture slides, readings, or assignment handouts.
+            </p>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setMode("manual")}
+            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white dark:bg-black/10"
+          >
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+              <FiFileText className="h-5 w-5" />
+            </div>
+            <h4 className="mt-5 text-base font-semibold text-[color:var(--text)]">
+              Paste text directly
+            </h4>
+            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+              Ideal for notes, reading excerpts, or rough ideas you want condensed.
+            </p>
           </button>
         </div>
-
-        <form onSubmit={handleManualSubmit}>
-          <div className="mb-6">
-            <label
-              htmlFor="text-to-summarize"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Paste your text below
-            </label>
-            <textarea
-              id="text-to-summarize"
-              className="w-full p-4 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600
-                        text-gray-900 dark:text-white rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste the text you want to summarize here..."
-              style={{ height: "200px" }}
-            />
-          </div>
-
-          <div className="flex justify-between gap-3">
-            <button
-              type="button"
-              onClick={() => setMode("select")}
-              className="px-5 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-            >
-              Back
-            </button>
-            <button
-              type="submit"
-              disabled={!text.trim()}
-              className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Summarize Text
-            </button>
-          </div>
-        </form>
-      </>
+      </div>
     );
-  };
+  }
+
+  if (mode === "upload") {
+    return (
+      <div className="p-6 sm:p-7">
+        {renderHeader(
+          "Upload a PDF",
+          "BALVIS will extract the text first and then turn it into a clean summary."
+        )}
+
+        <div
+          className="mt-6 rounded-[24px] border border-dashed border-[color:var(--surface-border)] bg-white/60 p-10 text-center transition hover:bg-white/80 dark:bg-black/10"
+          onClick={() => fileInputRef.current?.click()}
+        >
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+            <FiUploadCloud className="h-6 w-6" />
+          </div>
+          <p className="mt-5 text-base font-semibold text-[color:var(--text)]">
+            Choose a PDF to summarize
+          </p>
+          <p className="mt-2 text-sm text-[color:var(--muted)]">
+            Click here to select a file. PDFs only.
+          </p>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="application/pdf"
+            onChange={handleFileUpload}
+          />
+        </div>
+
+        {isUploading && (
+          <p className="mt-4 text-sm font-medium text-[color:var(--accent)]">
+            Reading the document now...
+          </p>
+        )}
+        {uploadError && (
+          <p className="mt-4 text-sm font-medium text-amber-700 dark:text-amber-400">
+            {uploadError}
+          </p>
+        )}
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setMode("select")}
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+            disabled={isUploading}
+          >
+            <FiArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-full bg-[color:var(--text)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            disabled={isUploading}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="w-full">
-      <div className="h-1 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-t-xl"></div>
-      <div className="p-6">{renderContent()}</div>
+    <div className="p-6 sm:p-7">
+      {renderHeader(
+        "Paste the text you want summarized",
+        "A few paragraphs or a full page are both fine. BALVIS will condense the main ideas and keep the important details."
+      )}
+
+      <form onSubmit={handleManualSubmit} className="mt-6">
+        <label
+          htmlFor="text-to-summarize"
+          className="caption-label block text-left"
+        >
+          Source text
+        </label>
+        <textarea
+          id="text-to-summarize"
+          className="mt-3 h-56 w-full rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 px-5 py-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste your notes, reading, or assignment prompt here..."
+        />
+
+        <div className="mt-6 flex items-center justify-between gap-3">
+          <button
+            type="button"
+            onClick={() => setMode("select")}
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+          >
+            <FiArrowLeft className="h-4 w-4" />
+            Back
+          </button>
+          <button
+            type="submit"
+            disabled={!text.trim()}
+            className="rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            Create summary
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

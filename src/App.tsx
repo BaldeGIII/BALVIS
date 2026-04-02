@@ -7,6 +7,13 @@ import TextSummarizer from "./components/TextSummarizer";
 import ConversationTabs from "./components/ConversationTabs";
 import Whiteboard from "./components/Whiteboard";
 import { apiUrl, createApiHeaders } from "./lib/api";
+import {
+  FiArrowRight,
+  FiEdit3,
+  FiFileText,
+  FiMessageSquare,
+  FiSearch,
+} from "react-icons/fi";
 
 interface Tab {
   id: string;
@@ -31,12 +38,12 @@ function App() {
         const parsedTabs = JSON.parse(savedTabs);
         return parsedTabs.length > 0
           ? parsedTabs
-          : [{ id: "1", title: "New Chat", messages: [] }];
+          : [{ id: "1", title: "New session", messages: [] }];
       }
-      return [{ id: "1", title: "New Chat", messages: [] }];
+      return [{ id: "1", title: "New session", messages: [] }];
     } catch (error) {
       console.error("Error loading saved tabs:", error);
-      return [{ id: "1", title: "New Chat", messages: [] }];
+      return [{ id: "1", title: "New session", messages: [] }];
     }
   });
 
@@ -58,6 +65,11 @@ function App() {
   // Get current active tab
   const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
   const messages = activeTab.messages;
+  const showEmptyState =
+    activeTab.type !== "whiteboard" &&
+    messages.length === 0 &&
+    !showSummarizer &&
+    !loading;
 
   // Helper function to update messages in the active tab
   const setMessages = (updater: (prev: Tab["messages"]) => Tab["messages"]) => {
@@ -80,7 +92,7 @@ function App() {
     const newTabId = Date.now().toString();
     const newTab: Tab = {
       id: newTabId,
-      title: "New Chat",
+      title: "New session",
       type: "chat",
       messages: [],
     };
@@ -93,7 +105,7 @@ function App() {
     const newTabId = `whiteboard-${Date.now()}`;
     const newTab: Tab = {
       id: newTabId,
-      title: "🎨 Whiteboard",
+      title: "Whiteboard",
       type: "whiteboard",
       messages: [],
     };
@@ -162,7 +174,7 @@ function App() {
       const newTabId = Date.now().toString();
       const newTab: Tab = {
         id: newTabId,
-        title: "New Chat",
+        title: "New session",
         type: "chat",
         messages: [],
       };
@@ -190,7 +202,7 @@ function App() {
 
   // Auto-update tab title based on first user message
   const updateTabTitle = (message: string) => {
-    if (activeTab.messages.length === 0 && activeTab.title === "New Chat") {
+    if (activeTab.messages.length === 0 && activeTab.title === "New session") {
       const title =
         message.length > 30 ? message.substring(0, 30) + "..." : message;
       handleTabRename(activeTabId, title);
@@ -338,8 +350,8 @@ function App() {
     // Add user message showing what's being summarized
     const userMessage =
       source === "pdf"
-        ? "📄 Summarize this PDF document for me"
-        : "📝 Summarize this text for me";
+        ? "Summarize this PDF for me"
+        : "Summarize these notes for me";
 
     setMessages((prev) => [...prev, { type: "user", content: userMessage }]);
 
@@ -438,8 +450,50 @@ function App() {
     }
   };
 
+  const openSummarizer = () => {
+    setShowSummarizer(true);
+    setTimeout(() => scrollToBottom(), 100);
+  };
+
+  const handleQuickActionSelection = (action: string) => {
+    if (action === "Summarize text") {
+      openSummarizer();
+    } else if (action === "Whiteboard Integration") {
+      handleWhiteboardTabCreate();
+    } else {
+      setMessage(action);
+    }
+  };
+
+  const suggestedStarts = [
+    {
+      title: "Break down a concept",
+      description: "Ask for a clearer explanation, examples, or practice ideas.",
+      value: "Explain this topic in a simpler way and show one worked example.",
+      icon: FiMessageSquare,
+    },
+    {
+      title: "Turn notes into a summary",
+      description: "Condense lecture notes, readings, or assignment prompts.",
+      action: openSummarizer,
+      icon: FiFileText,
+    },
+    {
+      title: "Find a study video",
+      description: "Get a few useful videos for the topic you're learning.",
+      value: "I want to find a video about",
+      icon: FiSearch,
+    },
+    {
+      title: "Sketch the problem out",
+      description: "Open the whiteboard and analyze equations or diagrams.",
+      action: handleWhiteboardTabCreate,
+      icon: FiEdit3,
+    },
+  ];
+
   return (
-    <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 to-sky-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
+    <div className="app-shell flex h-screen flex-col text-[color:var(--text)] transition-colors duration-300">
       <Header
         darkMode={darkMode}
         setDarkMode={setDarkMode}
@@ -455,10 +509,10 @@ function App() {
         onTabRename={handleTabRename}
       />
 
-      <main className="flex-1 flex flex-col w-full overflow-hidden">
+      <main className="flex-1 overflow-hidden px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
         {activeTab.type === "whiteboard" ? (
           // Whiteboard in full-screen mode
-          <div className="flex-1 w-full h-full">
+          <div className="mx-auto flex h-full w-full max-w-[88rem] overflow-hidden rounded-[28px] panel-surface">
             <Whiteboard
               onAnalyze={handleWhiteboardAnalyze}
               isAnalyzing={whiteboardAnalyzing}
@@ -467,144 +521,190 @@ function App() {
           </div>
         ) : (
           // Chat view with messages
-          <div
-            className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              // Handle Ctrl+A to select only text in current conversation
-              if (e.ctrlKey && e.key === "a") {
-                e.preventDefault();
-                e.stopPropagation();
+          <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-hidden rounded-[28px] panel-surface">
+            <div
+              className="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 scrollbar-track-transparent"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                // Handle Ctrl+A to select only text in current conversation
+                if (e.ctrlKey && e.key === "a") {
+                  e.preventDefault();
+                  e.stopPropagation();
 
-                // Create a range that includes all text content in this conversation container
-                const selection = window.getSelection();
-                const range = document.createRange();
-                const conversationContainer = e.currentTarget.querySelector(
-                  ".conversation-content"
-                );
+                  // Create a range that includes all text content in this conversation container
+                  const selection = window.getSelection();
+                  const range = document.createRange();
+                  const conversationContainer = e.currentTarget.querySelector(
+                    ".conversation-content"
+                  );
 
-                if (selection && conversationContainer) {
-                  selection.removeAllRanges();
-                  range.selectNodeContents(conversationContainer);
-                  selection.addRange(range);
-                }
-              }
-            }}
-          >
-            <div className="conversation-content flex flex-col py-6 px-6 max-w-5xl mx-auto w-full">
-              {/* Use max-w-5xl for better readability */}
-              {messages.map((msg, index) => (
-                <MessageBubble
-                  key={index}
-                  message={msg}
-                  onVideoSearch={handleVideoSearchFromMessage}
-                />
-              ))}
-              {loading && (
-                <div className="flex space-x-2 p-4 max-w-xs mx-auto">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce" />
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-100" />
-                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-200" />
-                </div>
-              )}
-
-              {/* TextSummarizer appears inside the scrollable area */}
-              {showSummarizer && !loading && (
-                <div className="w-full max-w-3xl mx-auto my-6">
-                  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700">
-                    <TextSummarizer
-                      apiKey={apiKey}
-                      onClose={() => setShowSummarizer(false)}
-                      onSummaryResult={(text, source) =>
-                        handleSummarize(text, source)
-                      }
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-        )}
-
-        {activeTab.type !== "whiteboard" && (
-          <div className="sticky bottom-0 p-6 bg-white/90 dark:bg-gray-800/90 border-t border-gray-200 dark:border-gray-700 backdrop-blur-lg">
-            <div className="max-w-5xl mx-auto w-full space-y-4">
-              <QuickActions
-                onActionSelect={(action) => {
-                  if (action === "Summarize text") {
-                    setShowSummarizer(true);
-                    // Scroll to where the summarizer will appear
-                    setTimeout(() => scrollToBottom(), 100);
-                  } else if (action === "Whiteboard Integration") {
-                    handleWhiteboardTabCreate();
-                  } else {
-                    setMessage(action);
+                  if (selection && conversationContainer) {
+                    selection.removeAllRanges();
+                    range.selectNodeContents(conversationContainer);
+                    selection.addRange(range);
                   }
-                }}
-                onCreateWhiteboardTab={handleWhiteboardTabCreate}
-              />
+                }
+              }}
+            >
+              <div className="conversation-content mx-auto flex w-full max-w-6xl flex-col px-4 py-8 sm:px-6 sm:py-10">
+                {showEmptyState && (
+                  <section className="animate-fade-in py-6 sm:py-10">
+                    <div className="mx-auto max-w-4xl text-center">
+                      <p className="caption-label mb-4">Study with more clarity</p>
+                      <h2 className="headline-display text-4xl font-semibold leading-tight text-[color:var(--text)] sm:text-5xl">
+                        Ask questions, summarize notes, and work through problems
+                        in one place.
+                      </h2>
+                      <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[color:var(--muted)] sm:text-lg">
+                        BALVIS is built for real study sessions. Start with a
+                        concept, a reading, a practice problem, or a whiteboard
+                        sketch you want help unpacking.
+                      </p>
+                    </div>
 
-              <form onSubmit={handleSubmit} className="flex items-center gap-4">
-                <textarea
-                  ref={textareaRef}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      // Regular Enter - submit the form
-                      e.preventDefault();
-                      if (message.trim() && !loading) {
-                        handleSubmit(e as any);
-                      }
-                    }
-                    // Shift+Enter will naturally create a new line
-                  }}
-                  placeholder="Type your message... (API key configured in backend)"
-                  className="flex-1 p-4 rounded-xl bg-white dark:bg-gray-700 
-                  border border-gray-200 dark:border-gray-600
-                  text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
-                  focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400
-                  shadow-sm resize-none"
-                  style={{
-                    minHeight: "56px",
-                    maxHeight: "200px",
-                    overflowY: "auto",
-                  }}
-                  rows={1}
-                  disabled={loading}
-                />
-                <VoiceInput
-                  isListening={isListening}
-                  setIsListening={setIsListening}
-                  onSpeechResult={setMessage}
-                  disabled={loading}
-                />
-                <button
-                  type="submit"
-                  disabled={loading || !message.trim()}
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
-                         rounded-xl shadow-md transition-all duration-200
-                         disabled:opacity-50 disabled:cursor-not-allowed
-                         text-white flex items-center gap-2"
-                >
-                  {loading ? "Sending..." : "Send"}
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    <div className="mt-10 grid gap-4 md:grid-cols-2">
+                      {suggestedStarts.map((item) => {
+                        const Icon = item.icon;
+
+                        return (
+                          <button
+                            key={item.title}
+                            type="button"
+                            onClick={() =>
+                              item.action ? item.action() : setMessage(item.value ?? "")
+                            }
+                            className="group panel-strong rounded-[24px] p-5 text-left transition-transform duration-200 hover:-translate-y-1 sm:p-6"
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                                <Icon className="h-5 w-5" />
+                              </div>
+                              <FiArrowRight className="mt-1 h-4 w-4 text-[color:var(--muted)] transition-transform duration-200 group-hover:translate-x-1" />
+                            </div>
+                            <h3 className="mt-6 text-lg font-semibold text-[color:var(--text)]">
+                              {item.title}
+                            </h3>
+                            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
+                              {item.description}
+                            </p>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+
+                {messages.map((msg, index) => (
+                  <MessageBubble
+                    key={index}
+                    message={msg}
+                    onVideoSearch={handleVideoSearchFromMessage}
+                  />
+                ))}
+                {loading && (
+                  <div className="mx-auto flex max-w-sm items-center gap-3 rounded-full bg-[color:var(--surface-strong)] px-5 py-3 text-sm text-[color:var(--muted)] shadow-sm">
+                    <div className="flex space-x-1.5">
+                      <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce delay-100" />
+                      <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce delay-200" />
+                    </div>
+                    Working on it
+                  </div>
+                )}
+
+                {/* TextSummarizer appears inside the scrollable area */}
+                {showSummarizer && !loading && (
+                  <div className="mx-auto my-6 w-full max-w-3xl">
+                    <div className="panel-strong overflow-hidden rounded-[28px]">
+                      <TextSummarizer
+                        apiKey={apiKey}
+                        onClose={() => setShowSummarizer(false)}
+                        onSummaryResult={(text, source) =>
+                          handleSummarize(text, source)
+                        }
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+            <div className="border-t soft-divider bg-[color:var(--surface-strong)]/96 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
+              <div className="mx-auto w-full max-w-6xl">
+                <div className="flex flex-col gap-4">
+                  {showEmptyState ? (
+                    <div>
+                      <p className="caption-label">Ask anything</p>
+                      <p className="mt-1 text-sm text-[color:var(--muted)]">
+                        Try a question below or start with one of the cards above.
+                      </p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                        <div>
+                          <p className="caption-label">Study tools</p>
+                          <p className="mt-1 text-sm text-[color:var(--muted)]">
+                            Open a tool without leaving the conversation.
+                          </p>
+                        </div>
+                      </div>
+
+                      <QuickActions
+                        onActionSelect={handleQuickActionSelection}
+                        onCreateWhiteboardTab={handleWhiteboardTabCreate}
+                      />
+                    </>
+                  )}
+
+                  <form
+                    onSubmit={handleSubmit}
+                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M14 5l7 7m0 0l-7 7m7-7H3"
+                    <textarea
+                      ref={textareaRef}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          // Regular Enter - submit the form
+                          e.preventDefault();
+                          if (message.trim() && !loading) {
+                            handleSubmit(e as any);
+                          }
+                        }
+                        // Shift+Enter will naturally create a new line
+                      }}
+                      placeholder="Ask about a concept, reading, assignment, or worked example"
+                      className="min-h-[56px] flex-1 resize-none rounded-[24px] border border-[color:var(--surface-border)] bg-white/70 px-5 py-4 text-[color:var(--text)] shadow-sm outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                      style={{
+                        minHeight: "56px",
+                        maxHeight: "200px",
+                        overflowY: "auto",
+                      }}
+                      rows={1}
+                      disabled={loading}
                     />
-                  </svg>
-                </button>
-              </form>
+                    <div className="flex items-center gap-3 self-end sm:self-auto">
+                      <VoiceInput
+                        isListening={isListening}
+                        setIsListening={setIsListening}
+                        onSpeechResult={setMessage}
+                        disabled={loading}
+                      />
+                      <button
+                        type="submit"
+                        disabled={loading || !message.trim()}
+                        className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[22px] bg-[color:var(--accent)] px-6 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {loading ? "Working" : "Send"}
+                        <FiArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
             </div>
           </div>
         )}

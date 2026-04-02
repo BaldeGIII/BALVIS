@@ -82,13 +82,14 @@ const VoiceInput: React.FC<VoiceInputProps> = ({
       type="button"
       onClick={() => setIsListening(!isListening)}
       disabled={disabled}
-      className={`p-4 rounded-xl transition-all duration-200 flex items-center justify-center
+      className={`inline-flex h-[60px] w-[60px] items-center justify-center rounded-[22px] border transition-all duration-200
                 ${
                   isListening
-                    ? "bg-red-500 hover:bg-red-600"
-                    : "bg-blue-600 hover:bg-blue-700"
+                    ? "border-transparent bg-[color:var(--warm)] text-white shadow-[0_18px_35px_rgba(182,116,67,0.28)]"
+                    : "border-[color:var(--surface-border)] bg-white/70 text-[color:var(--text)] hover:bg-white dark:bg-black/10"
                 }
-                disabled:opacity-50 disabled:cursor-not-allowed text-white`}
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+      title={isListening ? "Stop listening" : "Start voice input"}
     >
       {isListening ? (
         <MdMicOff className="w-6 h-6" />
