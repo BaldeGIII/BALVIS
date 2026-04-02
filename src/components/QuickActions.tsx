@@ -86,7 +86,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({
   };
 
   return (
-    <div className="space-y-3">
+    <div>
       <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 sm:flex-wrap sm:overflow-visible">
         {ACTIONS.map((item) => {
           const Icon = item.icon;
@@ -96,16 +96,16 @@ const QuickActions: React.FC<QuickActionsProps> = ({
               key={item.label}
               type="button"
               onClick={() => handleActionSelect(item.command)}
-              className="group flex min-h-[56px] min-w-[220px] flex-none items-center gap-3 rounded-[20px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-left transition hover:-translate-y-0.5 hover:border-[color:var(--accent)] hover:bg-white dark:bg-black/10 sm:min-w-0 sm:flex-1"
+              className="group flex min-h-[52px] min-w-[200px] flex-none items-center gap-3 rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-3.5 py-3 text-left transition hover:border-[color:var(--accent)] hover:bg-white dark:bg-black/10 sm:min-w-0 sm:flex-1"
             >
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
-                <Icon className="h-4.5 w-4.5" />
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                <Icon className="h-4 w-4" />
               </div>
               <div className="min-w-0 flex-1">
                 <h3 className="text-sm font-semibold text-[color:var(--text)]">
                   {item.label}
                 </h3>
-                <p className="mt-0.5 hidden text-xs leading-5 text-[color:var(--muted)] sm:block">
+                <p className="mt-0.5 hidden text-xs leading-5 text-[color:var(--muted)] lg:block">
                   {item.detail}
                 </p>
               </div>

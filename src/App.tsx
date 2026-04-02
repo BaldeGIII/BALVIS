@@ -9,6 +9,8 @@ import Whiteboard from "./components/Whiteboard";
 import { apiUrl, createApiHeaders } from "./lib/api";
 import {
   FiArrowRight,
+  FiChevronDown,
+  FiChevronUp,
   FiEdit3,
   FiFileText,
   FiMessageSquare,
@@ -59,6 +61,7 @@ function App() {
     return localStorage.getItem("darkMode") === "true";
   });
   const [isListening, setIsListening] = useState(false);
+  const [showToolTray, setShowToolTray] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -244,6 +247,10 @@ function App() {
     scrollToBottom();
   }, [messages, showSummarizer]);
 
+  useEffect(() => {
+    setShowToolTray(false);
+  }, [activeTabId, showSummarizer]);
+
   // Adjust textarea height when message changes
   useEffect(() => {
     adjustTextareaHeight();
@@ -295,6 +302,7 @@ function App() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!message.trim()) return;
+    setShowToolTray(false);
 
     // Update tab title if this is the first message
     updateTabTitle(message);
@@ -451,17 +459,20 @@ function App() {
   };
 
   const openSummarizer = () => {
+    setShowToolTray(false);
     setShowSummarizer(true);
     setTimeout(() => scrollToBottom(), 100);
   };
 
   const handleQuickActionSelection = (action: string) => {
+    setShowToolTray(false);
     if (action === "Summarize text") {
       openSummarizer();
     } else if (action === "Whiteboard Integration") {
       handleWhiteboardTabCreate();
     } else {
       setMessage(action);
+      textareaRef.current?.focus();
     }
   };
 
@@ -509,10 +520,10 @@ function App() {
         onTabRename={handleTabRename}
       />
 
-      <main className="flex-1 overflow-hidden px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+      <main className="flex-1 overflow-hidden px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
         {activeTab.type === "whiteboard" ? (
           // Whiteboard in full-screen mode
-          <div className="mx-auto flex h-full w-full max-w-[88rem] overflow-hidden rounded-[28px] panel-surface">
+          <div className="mx-auto flex h-full w-full max-w-[82rem] overflow-hidden rounded-[28px] panel-surface">
             <Whiteboard
               onAnalyze={handleWhiteboardAnalyze}
               isAnalyzing={whiteboardAnalyzing}
@@ -521,7 +532,7 @@ function App() {
           </div>
         ) : (
           // Chat view with messages
-          <div className="mx-auto flex h-full w-full max-w-[88rem] flex-col overflow-hidden rounded-[28px] panel-surface">
+          <div className="mx-auto flex h-full w-full max-w-[82rem] flex-col overflow-hidden rounded-[28px] panel-surface">
             <div
               className="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 scrollbar-track-transparent"
               tabIndex={0}
@@ -546,23 +557,22 @@ function App() {
                 }
               }}
             >
-              <div className="conversation-content mx-auto flex w-full max-w-6xl flex-col px-4 py-8 sm:px-6 sm:py-10">
+              <div className="conversation-content mx-auto flex w-full max-w-[54rem] flex-col px-4 py-6 sm:px-6 sm:py-8">
                 {showEmptyState && (
-                  <section className="animate-fade-in py-6 sm:py-10">
-                    <div className="mx-auto max-w-4xl text-center">
-                      <p className="caption-label mb-4">Study with more clarity</p>
-                      <h2 className="headline-display text-4xl font-semibold leading-tight text-[color:var(--text)] sm:text-5xl">
-                        Ask questions, summarize notes, and work through problems
-                        in one place.
+                  <section className="animate-fade-in py-4 sm:py-5">
+                    <div className="mx-auto max-w-[42rem] text-center">
+                      <p className="caption-label mb-3">Start a study session</p>
+                      <h2 className="headline-display text-[2rem] font-semibold leading-tight text-[color:var(--text)] sm:text-[2.5rem]">
+                        Ask a question, summarize notes, or work through a
+                        problem.
                       </h2>
-                      <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[color:var(--muted)] sm:text-lg">
-                        BALVIS is built for real study sessions. Start with a
-                        concept, a reading, a practice problem, or a whiteboard
-                        sketch you want help unpacking.
+                      <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[color:var(--muted)] sm:text-base">
+                        Keep the first step simple. Start with a concept, a
+                        reading, or a sketch you want help unpacking.
                       </p>
                     </div>
 
-                    <div className="mt-10 grid gap-4 md:grid-cols-2">
+                    <div className="mt-6 grid gap-3 sm:grid-cols-2">
                       {suggestedStarts.map((item) => {
                         const Icon = item.icon;
 
@@ -573,20 +583,24 @@ function App() {
                             onClick={() =>
                               item.action ? item.action() : setMessage(item.value ?? "")
                             }
-                            className="group panel-strong rounded-[24px] p-5 text-left transition-transform duration-200 hover:-translate-y-1 sm:p-6"
+                            className="group panel-strong rounded-[20px] p-4 text-left transition-colors duration-200 hover:border-[color:var(--accent)] hover:bg-[color:var(--surface)] sm:p-5"
                           >
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
-                                <Icon className="h-5 w-5" />
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
+                                <Icon className="h-4.5 w-4.5" />
                               </div>
-                              <FiArrowRight className="mt-1 h-4 w-4 text-[color:var(--muted)] transition-transform duration-200 group-hover:translate-x-1" />
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-start justify-between gap-3">
+                                  <h3 className="text-base font-semibold text-[color:var(--text)]">
+                                    {item.title}
+                                  </h3>
+                                  <FiArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-[color:var(--muted)] transition-transform duration-200 group-hover:translate-x-0.5" />
+                                </div>
+                                <p className="mt-1.5 text-sm leading-5 text-[color:var(--muted)]">
+                                  {item.description}
+                                </p>
+                              </div>
                             </div>
-                            <h3 className="mt-6 text-lg font-semibold text-[color:var(--text)]">
-                              {item.title}
-                            </h3>
-                            <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-                              {item.description}
-                            </p>
                           </button>
                         );
                       })}
@@ -630,77 +644,76 @@ function App() {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-            <div className="border-t soft-divider bg-[color:var(--surface-strong)]/96 px-4 py-4 backdrop-blur-xl sm:px-6 sm:py-5">
-              <div className="mx-auto w-full max-w-6xl">
-                <div className="flex flex-col gap-4">
-                  {showEmptyState ? (
-                    <div>
-                      <p className="caption-label">Ask anything</p>
-                      <p className="mt-1 text-sm text-[color:var(--muted)]">
-                        Try a question below or start with one of the cards above.
-                      </p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
-                        <div>
-                          <p className="caption-label">Study tools</p>
-                          <p className="mt-1 text-sm text-[color:var(--muted)]">
-                            Open a tool without leaving the conversation.
-                          </p>
-                        </div>
-                      </div>
-
+            <div className="border-t soft-divider bg-[color:var(--surface-strong)]/95 px-3 py-3 backdrop-blur-xl sm:px-5 sm:py-4">
+              <div className="mx-auto w-full max-w-[54rem]">
+                <div className="space-y-3">
+                  {showToolTray && (
+                    <div className="panel-strong rounded-[20px] p-3 sm:p-4">
                       <QuickActions
                         onActionSelect={handleQuickActionSelection}
                         onCreateWhiteboardTab={handleWhiteboardTabCreate}
                       />
-                    </>
+                    </div>
                   )}
 
-                  <form
-                    onSubmit={handleSubmit}
-                    className="flex flex-col gap-3 sm:flex-row sm:items-end"
-                  >
-                    <textarea
-                      ref={textareaRef}
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" && !e.shiftKey) {
-                          // Regular Enter - submit the form
-                          e.preventDefault();
-                          if (message.trim() && !loading) {
-                            handleSubmit(e as any);
+                  <form onSubmit={handleSubmit}>
+                    <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface)]/92 p-3 shadow-[0_10px_24px_rgba(28,24,20,0.08)]">
+                      <textarea
+                        ref={textareaRef}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            // Regular Enter - submit the form
+                            e.preventDefault();
+                            if (message.trim() && !loading) {
+                              handleSubmit(e as any);
+                            }
                           }
-                        }
-                        // Shift+Enter will naturally create a new line
-                      }}
-                      placeholder="Ask about a concept, reading, assignment, or worked example"
-                      className="min-h-[56px] flex-1 resize-none rounded-[24px] border border-[color:var(--surface-border)] bg-white/70 px-5 py-4 text-[color:var(--text)] shadow-sm outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
-                      style={{
-                        minHeight: "56px",
-                        maxHeight: "200px",
-                        overflowY: "auto",
-                      }}
-                      rows={1}
-                      disabled={loading}
-                    />
-                    <div className="flex items-center gap-3 self-end sm:self-auto">
-                      <VoiceInput
-                        isListening={isListening}
-                        setIsListening={setIsListening}
-                        onSpeechResult={setMessage}
+                          // Shift+Enter will naturally create a new line
+                        }}
+                        placeholder="Ask about a concept, reading, assignment, or worked example"
+                        className="min-h-[48px] w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-7 text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+                        style={{
+                          minHeight: "48px",
+                          maxHeight: "180px",
+                          overflowY: "auto",
+                        }}
+                        rows={1}
                         disabled={loading}
                       />
-                      <button
-                        type="submit"
-                        disabled={loading || !message.trim()}
-                        className="inline-flex h-[56px] items-center justify-center gap-2 rounded-[22px] bg-[color:var(--accent)] px-6 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {loading ? "Working" : "Send"}
-                        <FiArrowRight className="h-4 w-4" />
-                      </button>
+
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[color:var(--surface-border)] pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setShowToolTray((prev) => !prev)}
+                          className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+                        >
+                          Study tools
+                          {showToolTray ? (
+                            <FiChevronUp className="h-4 w-4" />
+                          ) : (
+                            <FiChevronDown className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        <div className="flex items-center gap-2">
+                          <VoiceInput
+                            isListening={isListening}
+                            setIsListening={setIsListening}
+                            onSpeechResult={setMessage}
+                            disabled={loading}
+                          />
+                          <button
+                            type="submit"
+                            disabled={loading || !message.trim()}
+                            className="inline-flex h-[52px] items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                          >
+                            {loading ? "Working" : "Send"}
+                            <FiArrowRight className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </form>
                 </div>

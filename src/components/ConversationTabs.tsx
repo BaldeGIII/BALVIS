@@ -59,8 +59,8 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
 
   return (
     <div className="px-4 pb-1 sm:px-6">
-      <div className="mx-auto w-full max-w-[88rem]">
-        <div className="flex items-center gap-2 overflow-x-auto rounded-[24px] border soft-divider bg-[color:var(--surface)] px-3 py-2.5 shadow-[0_10px_22px_rgba(63,43,25,0.06)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
+      <div className="mx-auto w-full max-w-[82rem]">
+        <div className="flex items-center gap-2 overflow-x-auto rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-3 py-2 shadow-[0_8px_18px_rgba(63,43,25,0.05)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
           {tabs.map((tab) => (
             <div
               key={tab.id}
@@ -77,14 +77,14 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                   onChange={(e) => setEditingTitle(e.target.value)}
                   onBlur={handleSaveEdit}
                   onKeyDown={handleKeyPress}
-                  className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-sm font-medium outline-none"
+                  className="min-w-0 flex-1 bg-transparent px-4 py-2 text-sm font-medium outline-none"
                   autoFocus
                 />
               ) : (
                 <button
                   onClick={() => onTabSelect(tab.id)}
                   onDoubleClick={() => handleStartEdit(tab)}
-                  className="min-w-0 flex-1 truncate px-4 py-2.5 text-left text-sm font-semibold"
+                  className="min-w-0 flex-1 truncate px-4 py-2 text-left text-sm font-semibold"
                   title={tab.title}
                 >
                   {tab.title}
@@ -106,7 +106,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
 
           <button
             onClick={onTabCreate}
-            className="ml-1 inline-flex h-10 min-w-[40px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-white/60 px-3 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
+            className="ml-1 inline-flex h-9 min-w-[36px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-white/60 px-3 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
             title="New conversation"
           >
             <FiPlus className="h-4 w-4" />

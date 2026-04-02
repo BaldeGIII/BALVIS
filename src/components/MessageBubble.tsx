@@ -316,21 +316,21 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   return (
     <div
       className={`w-full flex ${
-        message.type === "user" ? "justify-end pl-8" : "justify-start pr-8"
-      } mb-6`}
+        message.type === "user" ? "justify-end pl-10" : "justify-start pr-10"
+      } mb-4`}
     >
       <div
-        className={`relative max-w-[88%] animate-slide-in p-5 sm:max-w-[72%]
+        className={`relative max-w-[92%] animate-slide-in p-4 sm:max-w-[70%]
         ${
           message.type === "user"
-            ? "rounded-[26px] rounded-br-[10px] bg-[linear-gradient(135deg,#1f6b5d_0%,#2e8474_100%)] text-white shadow-[0_20px_45px_rgba(31,107,93,0.24)]"
-            : "panel-strong rounded-[26px] rounded-bl-[10px]"
+            ? "rounded-[22px] rounded-br-[10px] bg-[linear-gradient(135deg,#1f6b5d_0%,#2a7c6d_100%)] text-white shadow-[0_14px_30px_rgba(31,107,93,0.18)]"
+            : "panel-strong rounded-[22px] rounded-bl-[10px]"
         }
-        transition-transform duration-200 hover:translate-y-[-1px]`}
+        transition-colors duration-200`}
       >
-        <div className="flex items-center gap-2 mb-2">
+        <div className="mb-2 flex items-center gap-2">
           <div
-            className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold
             ${
               message.type === "user"
                 ? "bg-white/16 text-white"
@@ -340,7 +340,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             {message.type === "user" ? "You" : "B"}
           </div>
           <span
-            className={`text-sm font-semibold tracking-wide 
+            className={`text-[11px] font-semibold uppercase tracking-[0.18em] 
             ${
               message.type === "user"
                 ? "text-white/88"
@@ -351,7 +351,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </span>
         </div>
         <div
-          className={`text-[15px] leading-7 font-medium
+          className={`text-[14.5px] leading-7 font-medium
           ${
             message.type === "user"
               ? "text-white"
