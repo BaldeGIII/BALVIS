@@ -128,12 +128,6 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
       .slice(0, 3); // Limit to 3 searches max
   };
 
-  const extractTopicFromSummary = (content: string) => {
-    // This function now just returns the first topic from the multiple topics function
-    const topics = extractMultipleTopicsFromSummary(content);
-    return topics[0] || "algorithm tutorial";
-  };
-
   const formatMessage = (content: string) => {
     // First, clean up any remaining ** formatting
     let cleanedContent = content.replace(/\*\*(.*?)\*\*/g, "$1");

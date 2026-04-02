@@ -1,14 +1,12 @@
 import React from "react";
 
 interface HeaderProps {
-  onKeySubmit: (key: string) => void;
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
   onClearConversation: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
-  onKeySubmit,
   darkMode,
   setDarkMode,
   onClearConversation,

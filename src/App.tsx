@@ -6,6 +6,7 @@ import Header from "./components/Header";
 import TextSummarizer from "./components/TextSummarizer";
 import ConversationTabs from "./components/ConversationTabs";
 import Whiteboard from "./components/Whiteboard";
+import { apiUrl, createApiHeaders } from "./lib/api";
 
 interface Tab {
   id: string;
@@ -46,9 +47,7 @@ function App() {
 
   const [loading, setLoading] = useState(false);
   const [whiteboardAnalyzing, setWhiteboardAnalyzing] = useState(false);
-  const [apiKey, setApiKey] = useState(
-    () => localStorage.getItem("openai_api_key") || ""
-  );
+  const [apiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
   const [darkMode, setDarkMode] = useState(() => {
     return localStorage.getItem("darkMode") === "true";
   });
@@ -104,23 +103,15 @@ function App() {
   };
 
   const handleWhiteboardAnalyze = async (imageData: string) => {
-    if (!apiKey) {
-      alert("Please set your OpenAI API key first");
-      return;
-    }
-
     setWhiteboardAnalyzing(true);
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/analyze-whiteboard",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ imageData, apiKey }),
-        }
-      );
+      const response = await fetch(apiUrl("/api/analyze-whiteboard"), {
+        method: "POST",
+        headers: createApiHeaders(apiKey, {
+          "Content-Type": "application/json",
+        }),
+        body: JSON.stringify({ imageData, apiKey: apiKey || undefined }),
+      });
 
       if (!response.ok) {
         throw new Error("Failed to analyze whiteboard");
@@ -153,7 +144,11 @@ function App() {
       localStorage.setItem("balvis_active_tab", newTabId);
     } catch (error) {
       console.error("Whiteboard analysis error:", error);
-      alert("Failed to analyze whiteboard. Please try again.");
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Failed to analyze whiteboard. Please try again.";
+      alert(message);
     } finally {
       setWhiteboardAnalyzing(false);
     }
@@ -285,11 +280,6 @@ function App() {
     };
   }, []);
 
-  const handleKeySubmit = (key: string) => {
-    localStorage.setItem("openai_api_key", key);
-    setApiKey(key);
-  };
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!message.trim()) return;
@@ -305,16 +295,11 @@ function App() {
 
     setLoading(true);
     try {
-      const headers: HeadersInit = {
+      const headers = createApiHeaders(apiKey, {
         "Content-Type": "application/json",
-      };
+      });
 
-      // Only include API key header if it exists in localStorage
-      if (apiKey) {
-        headers["X-API-Key"] = apiKey;
-      }
-
-      const res = await fetch("http://localhost:3001/api/chat", {
+      const res = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         credentials: "include",
         headers,
@@ -330,11 +315,15 @@ function App() {
       setMessages((prev) => [...prev, { type: "ai", content: data.reply }]);
     } catch (error) {
       console.error("Error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sorry, there was an error processing your request.";
       setMessages((prev) => [
         ...prev,
         {
           type: "ai",
-          content: "Sorry, there was an error processing your request.",
+          content: message,
         },
       ]);
     } finally {
@@ -355,12 +344,11 @@ function App() {
     setMessages((prev) => [...prev, { type: "user", content: userMessage }]);
 
     try {
-      const response = await fetch("http://localhost:3001/api/summarize", {
+      const response = await fetch(apiUrl("/api/summarize"), {
         method: "POST",
-        headers: {
+        headers: createApiHeaders(apiKey, {
           "Content-Type": "application/json",
-          "X-API-Key": apiKey,
-        },
+        }),
         body: JSON.stringify({ text }),
       });
 
@@ -378,12 +366,15 @@ function App() {
       ]);
     } catch (error) {
       console.error("Error summarizing text:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sorry, I encountered an error while summarizing the content.";
       setMessages((prev) => [
         ...prev,
         {
           type: "ai",
-          content:
-            "Sorry, I encountered an error while summarizing the content.",
+          content: message,
         },
       ]);
     } finally {
@@ -394,19 +385,18 @@ function App() {
 
   // Function to handle video search requests from MessageBubble
   const handleVideoSearchFromMessage = async (query: string) => {
-    if (!apiKey || loading) return;
+    if (loading) return;
 
     // Add the query as a user message
     setMessages((prev) => [...prev, { type: "user", content: query }]);
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3001/api/chat", {
+      const response = await fetch(apiUrl("/api/chat"), {
         method: "POST",
-        headers: {
+        headers: createApiHeaders(apiKey, {
           "Content-Type": "application/json",
-          "X-API-Key": apiKey,
-        },
+        }),
         body: JSON.stringify({ message: query }),
       });
 
@@ -421,12 +411,15 @@ function App() {
       setMessages((prev) => [...prev, { type: "ai", content: data.reply }]);
     } catch (error) {
       console.error("Error:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Sorry, there was an error processing your video search request.";
       setMessages((prev) => [
         ...prev,
         {
           type: "ai",
-          content:
-            "Sorry, there was an error processing your video search request.",
+          content: message,
         },
       ]);
     } finally {
@@ -448,7 +441,6 @@ function App() {
   return (
     <div className="flex flex-col h-screen bg-gradient-to-br from-indigo-50 to-sky-100 dark:from-gray-900 dark:to-gray-800 transition-colors duration-200">
       <Header
-        onKeySubmit={handleKeySubmit}
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onClearConversation={handleClearConversation}
