@@ -25,7 +25,7 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 app.use(cors({
   origin: 'http://localhost:5173', // React app URL
-  credentials: false // Simplified - no sessions needed
+  credentials: true // Enable credentials for cookies/sessions
 }));
 app.use(express.json());
 
@@ -554,21 +554,23 @@ function convertLatexToUnicode(text) {
   
   let converted = text;
   
-  // Convert LaTeX square roots: \(\sqrt{number}\) → √number
-  converted = converted.replace(/\\?\\\(\s*\\sqrt\{([^}]+)\}\s*\\?\\\)/g, '√$1');
+  // Convert LaTeX display math blocks: \[ content \] → content
+  converted = converted.replace(/\\\[\s*([^\\]*?)\s*\\\]/g, '$1');
   
-  // Convert LaTeX fractions: \(\frac{a}{b}\) → a/b
-  converted = converted.replace(/\\?\\\(\s*\\frac\{([^}]+)\}\{([^}]+)\}\s*\\?\\\)/g, '$1/$2');
+  // Convert LaTeX inline math: \( content \) → content
+  converted = converted.replace(/\\\(\s*([^\\]*?)\s*\\\)/g, '$1');
   
-  // Convert LaTeX superscripts in parentheses: \(x^2\) → x², \(3^2\) → 3², etc.
-  converted = converted.replace(/\\?\\\(\s*([^\\)]*)\^(\d+)\s*\\?\\\)/g, '$1$2');
+  // Convert LaTeX square roots: \sqrt{number} → √number
+  converted = converted.replace(/\\sqrt\{([^}]+)\}/g, '√$1');
   
-  // Convert more complex expressions: \(3\sqrt{2}\) → 3√2
-  converted = converted.replace(/\\?\\\(\s*(\d+)\\sqrt\{([^}]+)\}\s*\\?\\\)/g, '$1√$2');
+  // Convert LaTeX fractions: \frac{a}{b} → a/b
+  converted = converted.replace(/\\frac\{([^}]+)\}\{([^}]+)\}/g, '$1/$2');
   
-  // Convert LaTeX mathematical expressions in parentheses: \(expression\) → expression
-  // This should be done AFTER more specific patterns
-  converted = converted.replace(/\\?\\\(\s*([^\\)]+)\s*\\?\\\)/g, '$1');
+  // Convert more complex expressions: 3\sqrt{2} → 3√2
+  converted = converted.replace(/(\d+)\\sqrt\{([^}]+)\}/g, '$1√$2');
+  
+  // Convert LaTeX text commands
+  converted = converted.replace(/\\text\{([^}]+)\}/g, '$1');
   
   // Convert common mathematical symbols
   converted = converted.replace(/\\times/g, '×');
@@ -590,6 +592,12 @@ function convertLatexToUnicode(text) {
   converted = converted.replace(/\\sum/g, '∑');
   converted = converted.replace(/\\int/g, '∫');
   
+  // Convert LaTeX superscripts: x^{2} → x², x^2 → x²
+  converted = converted.replace(/([a-zA-Z0-9])\^\{(\d+)\}/g, (match, base, exp) => {
+    const superscripts = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+    return base + exp.split('').map(digit => superscripts[digit] || digit).join('');
+  });
+  
   // Convert standalone superscripts: ^2 → ², ^3 → ³, etc.
   converted = converted.replace(/\^2\b/g, '²');
   converted = converted.replace(/\^3\b/g, '³');
@@ -599,6 +607,12 @@ function convertLatexToUnicode(text) {
   converted = converted.replace(/\^7\b/g, '⁷');
   converted = converted.replace(/\^8\b/g, '⁸');
   converted = converted.replace(/\^9\b/g, '⁹');
+  
+  // Convert LaTeX subscripts: x_{1} → x₁, x_1 → x₁
+  converted = converted.replace(/([a-zA-Z0-9])_\{(\d+)\}/g, (match, base, sub) => {
+    const subscripts = { '0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄', '5': '₅', '6': '₆', '7': '₇', '8': '₈', '9': '₉' };
+    return base + sub.split('').map(digit => subscripts[digit] || digit).join('');
+  });
   
   // Convert subscripts: _1 → ₁, _2 → ₂, etc.
   converted = converted.replace(/_0\b/g, '₀');
@@ -612,7 +626,7 @@ function convertLatexToUnicode(text) {
   converted = converted.replace(/_8\b/g, '₈');
   converted = converted.replace(/_9\b/g, '₉');
   
-  // Map numbers to their superscript Unicode equivalents
+  // Apply simple superscript conversion for remaining cases
   const superscriptMap = {
     '2': '²',
     '3': '³',
@@ -624,17 +638,21 @@ function convertLatexToUnicode(text) {
     '9': '⁹'
   };
   
-  // Apply superscript conversion
   for (const [num, sup] of Object.entries(superscriptMap)) {
     const regex = new RegExp(`([a-zA-Z0-9])\\^${num}`, 'g');
     converted = converted.replace(regex, `$1${sup}`);
   }
   
+  // Remove any remaining LaTeX formatting artifacts
+  converted = converted.replace(/\\\\/g, ''); // Remove double backslashes
+  converted = converted.replace(/\\[a-zA-Z]+/g, ''); // Remove remaining LaTeX commands
+  
   return converted;
 }
 
 app.post('/api/chat', async (req, res) => {
-  const apiKey = req.headers['x-api-key'];
+  // Get API key from environment variable or request header
+  const apiKey = process.env.OPENAI_API_KEY || req.headers['x-api-key'];
   
   if (!apiKey) {
     return res.status(401).json({ error: 'API key is required' });
@@ -801,7 +819,7 @@ ${text}
 Summary:`;
     
     const completion = await openai.chat.completions.create({
-      model: 'gpt-4.1',
+      model: 'gpt-4o',
       messages: [{ role: 'user', content: prompt }],
       max_tokens: 800,
       temperature: 0.5
@@ -970,19 +988,22 @@ CRITICAL SYMBOL RECOGNITION RULES:
 - If unsure between mathematical symbol vs geometric shape, choose mathematical interpretation
 
 CRITICAL FORMATTING RULES - ABSOLUTELY NO LATEX:
-- NEVER EVER use LaTeX formatting like \\(anything\\) or \\[anything\\] 
-- NEVER use backslashes: NO \\sqrt, NO \\times, NO \\pi, NO \\frac
+- NEVER EVER use ANY LaTeX formatting: NO \\(anything\\), NO \\[anything\\], NO \\{anything\\}
+- NEVER use backslashes: NO \\sqrt, NO \\times, NO \\pi, NO \\frac, NO \\text
+- NEVER use display math blocks: NO \\[ Area = base × height \\]
 - ALWAYS use Unicode symbols directly: √18, 3², π, ×, ÷, ∞
-- Write math as: "18 = 2 × 3²" NOT "\\(18 = 2 \\times 3^2\\)"
-- Write square roots as: "√18 = 3√2" NOT "\\(\\sqrt{18} = 3\\sqrt{2}\\)"
-- Write fractions as: "1/2" or "one half" NOT "\\(\\frac{1}{2}\\)"
-- Examples GOOD: √18 ≈ 4.24, x² + y² = z², π ≈ 3.14159, 2 × 3 = 6
-- Examples BAD: \\(\\sqrt{18}\\), \\(x^2\\), \\(\\pi\\), \\(\\times\\)
+- Write math as: "Area = base × height" NOT "\\[ \\text{Area} = \\text{base} \\times \\text{height} \\]"
+- Write formulas as: "Area = base × height" NOT "\\[ Area = base \\times height \\]"
+- Write square roots as: "√18 = 3√2" NOT "\\sqrt{18} = 3\\sqrt{2}"
+- Write fractions as: "1/2" or "one half" NOT "\\frac{1}{2}"
+- Examples GOOD: Area = base × height, √18 ≈ 4.24, x² + y² = z², π ≈ 3.14159, 2 × 3 = 6
+- Examples BAD: \\[Area = base \\times height\\], \\(\\sqrt{18}\\), \\(x^2\\), \\text{Area}
 
 ABSOLUTELY FORBIDDEN:
 - Any text containing \\( or \\)
 - Any text containing \\[ or \\]
-- Any backslash followed by letters like \\sqrt, \\frac, \\times, \\pi
+- Any text containing \\{ or \\}
+- Any backslash followed by letters like \\sqrt, \\frac, \\times, \\pi, \\text
 - Any LaTeX syntax whatsoever
 
 Use only plain text with Unicode mathematical symbols. This is critical for proper display.

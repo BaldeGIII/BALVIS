@@ -160,9 +160,23 @@ function App() {
   };
 
   const handleTabDelete = (tabId: string) => {
-    if (tabs.length <= 1) return; // Don't delete the last tab
-
     const updatedTabs = tabs.filter((tab) => tab.id !== tabId);
+
+    // If this was the last tab, create a new default chat tab
+    if (updatedTabs.length === 0) {
+      const newTabId = Date.now().toString();
+      const newTab: Tab = {
+        id: newTabId,
+        title: "New Chat",
+        type: "chat",
+        messages: [],
+      };
+      setTabs([newTab]);
+      setActiveTabId(newTabId);
+      localStorage.setItem("balvis_active_tab", newTabId);
+      return;
+    }
+
     setTabs(updatedTabs);
 
     // If deleting active tab, switch to the first remaining tab
@@ -278,7 +292,7 @@ function App() {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!message.trim() || !apiKey) return;
+    if (!message.trim()) return;
 
     // Update tab title if this is the first message
     updateTabTitle(message);
@@ -291,13 +305,19 @@ function App() {
 
     setLoading(true);
     try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Only include API key header if it exists in localStorage
+      if (apiKey) {
+        headers["X-API-Key"] = apiKey;
+      }
+
       const res = await fetch("http://localhost:3001/api/chat", {
         method: "POST",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-          "X-API-Key": apiKey,
-        },
+        headers,
         body: JSON.stringify({ message }),
       });
 
@@ -448,7 +468,6 @@ function App() {
           // Whiteboard in full-screen mode
           <div className="flex-1 w-full h-full">
             <Whiteboard
-              onClose={() => handleTabDelete(activeTab.id)}
               onAnalyze={handleWhiteboardAnalyze}
               isAnalyzing={whiteboardAnalyzing}
               isModal={false}
@@ -544,13 +563,13 @@ function App() {
                     if (e.key === "Enter" && !e.shiftKey) {
                       // Regular Enter - submit the form
                       e.preventDefault();
-                      if (message.trim() && apiKey && !loading) {
+                      if (message.trim() && !loading) {
                         handleSubmit(e as any);
                       }
                     }
                     // Shift+Enter will naturally create a new line
                   }}
-                  placeholder="Type your message..."
+                  placeholder="Type your message... (API key configured in backend)"
                   className="flex-1 p-4 rounded-xl bg-white dark:bg-gray-700 
                   border border-gray-200 dark:border-gray-600
                   text-gray-800 dark:text-white placeholder-gray-500 dark:placeholder-gray-400
@@ -562,17 +581,17 @@ function App() {
                     overflowY: "auto",
                   }}
                   rows={1}
-                  disabled={!apiKey || loading}
+                  disabled={loading}
                 />
                 <VoiceInput
                   isListening={isListening}
                   setIsListening={setIsListening}
                   onSpeechResult={setMessage}
-                  disabled={!apiKey || loading}
+                  disabled={loading}
                 />
                 <button
                   type="submit"
-                  disabled={loading || !apiKey || !message.trim()}
+                  disabled={loading || !message.trim()}
                   className="px-8 py-4 bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600
                          rounded-xl shadow-md transition-all duration-200
                          disabled:opacity-50 disabled:cursor-not-allowed

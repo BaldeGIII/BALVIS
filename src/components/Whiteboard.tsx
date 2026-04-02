@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 
 interface WhiteboardProps {
   onAnalyze: (imageData: string) => void;
-  onClose: () => void;
+  onClose?: () => void; // Optional, only used for modal mode
   isAnalyzing: boolean;
   isModal?: boolean; // Add prop to determine if it's a modal or tab
 }
@@ -166,24 +166,22 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
               BALVIS Whiteboard
             </h3>
           </div>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded p-1 transition-colors"
-            disabled={isAnalyzing}
-            title={isModal ? "Close whiteboard" : "Close whiteboard tab"}
-          >
-            {isModal ? (
-              <span className="text-2xl font-bold">×</span>
-            ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            )}
-          </button>
+          {isModal && onClose && (
+            <button
+              onClick={onClose}
+              className="text-gray-600 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 
+                       rounded-lg p-2.5 transition-all duration-200 hover:scale-105 
+                       border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700
+                       shadow-sm hover:shadow-md active:scale-95 min-w-[44px] min-h-[44px]
+                       flex items-center justify-center"
+              disabled={isAnalyzing}
+              title="Close whiteboard"
+            >
+              <span className="text-xl font-bold leading-none text-gray-700 dark:text-gray-300">
+                ×
+              </span>
+            </button>
+          )}
         </div>
 
         {/* Toolbar */}

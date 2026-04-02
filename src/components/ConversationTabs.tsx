@@ -91,29 +91,28 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                 </button>
               )}
 
-              {tabs.length > 1 && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onTabDelete(tab.id);
-                  }}
-                  className="p-1 mr-1 opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/50 
-                           text-red-600 dark:text-red-400 rounded transition-opacity"
-                  title="Delete conversation"
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onTabDelete(tab.id);
+                }}
+                className="p-1.5 mr-1 hover:bg-red-100 dark:hover:bg-red-900/50 
+                         text-red-600 dark:text-red-400 rounded-md transition-all duration-200 
+                         hover:scale-110 opacity-0 group-hover:opacity-100"
+                title="Delete conversation"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
                 >
-                  <svg
-                    className="w-4 h-4"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </button>
-              )}
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
             </div>
           ))}
 
