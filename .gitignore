@@ -33,3 +33,4 @@ dist-ssr
 backend/data/
 backend/uploads/
 *.csv
+output/
