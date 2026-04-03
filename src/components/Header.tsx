@@ -5,12 +5,23 @@ interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
   onClearConversation: () => void;
+  authLoading: boolean;
+  user: {
+    name: string;
+    email: string;
+  } | null;
+  onOpenAuth: () => void;
+  onLogout: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode,
   onClearConversation,
+  authLoading,
+  user,
+  onOpenAuth,
+  onLogout,
 }) => {
   return (
     <header className="relative z-30 px-4 pb-2 pt-3 sm:px-6 sm:pt-4">
@@ -23,6 +34,38 @@ const Header: React.FC<HeaderProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {authLoading ? (
+            <div className="hidden rounded-full border border-[color:var(--surface-border)] bg-white/60 px-3 py-2 text-xs font-medium text-[color:var(--muted)] sm:inline-flex">
+              Checking account
+            </div>
+          ) : user ? (
+            <>
+              <div className="hidden items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/60 px-3 py-1.5 text-sm text-[color:var(--text)] sm:inline-flex">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-xs font-semibold text-[color:var(--accent)]">
+                  {user.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="max-w-[10rem] truncate font-medium">
+                  {user.name}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+                title="Sign out"
+              >
+                Sign out
+              </button>
+            </>
+          ) : (
+            <button
+              onClick={onOpenAuth}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              title="Sign in"
+            >
+              Sign in
+            </button>
+          )}
+
           <button
             onClick={onClearConversation}
             className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"

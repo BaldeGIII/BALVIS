@@ -10,6 +10,10 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
+        "/auth": {
+          target: proxyTarget,
+          changeOrigin: true,
+        },
         "/api": {
           target: proxyTarget,
           changeOrigin: true,

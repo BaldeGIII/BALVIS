@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const session = require('express-session');
 const OpenAI = require('openai');
 const axios = require('axios');
 const multer = require('multer');
@@ -9,6 +10,15 @@ const fs = require('fs');
 const path = require('path');
 const { parse, format } = require('date-fns');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
+const {
+  createDefaultConversationState,
+  createUser,
+  getConversationSnapshot,
+  getUserByEmail,
+  getUserById,
+  saveConversationSnapshot,
+  verifyUserCredentials,
+} = require('./lib/accountStore');
 
 const upload = multer({ 
   dest: 'uploads/', 
@@ -18,6 +28,7 @@ const upload = multer({
 });
 
 const DEFAULT_DEV_ORIGINS = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const DEV_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
 const allowedOrigins = (process.env.CORS_ORIGINS || '')
   .split(',')
   .map((origin) => origin.trim())
@@ -26,13 +37,20 @@ const corsOrigins = allowedOrigins.length > 0 ? allowedOrigins : DEFAULT_DEV_ORI
 
 const app = express();
 const port = 3001; // Changed from 5000 to 3001 to match frontend expectations
+const sessionSecret =
+  process.env.SESSION_SECRET || 'balvis-dev-session-secret-change-me';
 
 // YouTube API key from .env file
 const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 
 app.use(cors({
   origin(origin, callback) {
-    if (!origin || corsOrigins.includes(origin)) {
+    const allowLocalDevOrigin =
+      allowedOrigins.length === 0 &&
+      typeof origin === 'string' &&
+      DEV_ORIGIN_PATTERN.test(origin);
+
+    if (!origin || corsOrigins.includes(origin) || allowLocalDevOrigin) {
       callback(null, true);
       return;
     }
@@ -41,7 +59,21 @@ app.use(cors({
   },
   credentials: true // Enable credentials for cookies/sessions
 }));
-app.use(express.json());
+app.use(express.json({ limit: '2mb' }));
+app.use(
+  session({
+    name: 'balvis.sid',
+    secret: sessionSecret,
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    },
+  })
+);
 
 function resolveApiKey(...candidates) {
   for (const candidate of candidates) {
@@ -81,7 +113,158 @@ function getApiErrorDetails(error, fallbackMessage) {
   };
 }
 
+function getSessionUser(req) {
+  if (!req.session?.userId) {
+    return null;
+  }
+
+  return getUserById(req.session.userId);
+}
+
+function sendAuthStatus(req, res) {
+  const user = getSessionUser(req);
+
+  if (!user) {
+    res.json({ authenticated: false, user: null });
+    return;
+  }
+
+  res.json({
+    authenticated: true,
+    user,
+  });
+}
+
+function requireAuth(req, res, next) {
+  const user = getSessionUser(req);
+
+  if (!user) {
+    res.status(401).json({ error: 'Authentication required.' });
+    return;
+  }
+
+  req.currentUser = user;
+  next();
+}
+
+function isMeaningfulConversationState(state) {
+  if (!state || !Array.isArray(state.tabs)) {
+    return false;
+  }
+
+  if (state.tabs.length > 1) {
+    return true;
+  }
+
+  return state.tabs.some((tab) => {
+    const hasMessages = Array.isArray(tab.messages) && tab.messages.length > 0;
+    return hasMessages || tab.type === 'whiteboard';
+  });
+}
+
 // API Routes start here
+
+app.get('/auth/status', (req, res) => {
+  sendAuthStatus(req, res);
+});
+
+app.post('/auth/register', (req, res) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+
+    if (name.length < 2) {
+      return res.status(400).json({ error: 'Please enter a name with at least 2 characters.' });
+    }
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Please use a password with at least 8 characters.' });
+    }
+
+    if (getUserByEmail(email)) {
+      return res.status(409).json({ error: 'An account with that email already exists.' });
+    }
+
+    const user = createUser({ name, email, password });
+    req.session.userId = user.id;
+
+    return res.status(201).json({
+      authenticated: true,
+      user,
+      conversations: getConversationSnapshot(user.id),
+    });
+  } catch (error) {
+    console.error('Registration error:', error);
+    return res.status(500).json({ error: 'Unable to create account right now.' });
+  }
+});
+
+app.post('/auth/login', (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const password = String(req.body?.password || '');
+    const user = verifyUserCredentials(email, password);
+
+    if (!user) {
+      return res.status(401).json({ error: 'Incorrect email or password.' });
+    }
+
+    req.session.userId = user.id;
+
+    return res.json({
+      authenticated: true,
+      user,
+      conversations: getConversationSnapshot(user.id),
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    return res.status(500).json({ error: 'Unable to sign in right now.' });
+  }
+});
+
+app.post('/auth/logout', (req, res) => {
+  req.session.destroy((error) => {
+    if (error) {
+      console.error('Logout error:', error);
+      res.status(500).json({ error: 'Unable to sign out right now.' });
+      return;
+    }
+
+    res.clearCookie('balvis.sid');
+    res.json({ success: true });
+  });
+});
+
+app.get('/api/conversations', requireAuth, (req, res) => {
+  const snapshot = getConversationSnapshot(req.currentUser.id);
+  res.json(snapshot);
+});
+
+app.put('/api/conversations', requireAuth, (req, res) => {
+  try {
+    const incomingState = {
+      tabs: req.body?.tabs,
+      activeTabId: req.body?.activeTabId,
+    };
+    const fallbackState = getConversationSnapshot(req.currentUser.id);
+    const stateToSave = isMeaningfulConversationState(incomingState)
+      ? incomingState
+      : fallbackState.updatedAt
+        ? incomingState
+        : createDefaultConversationState();
+    const snapshot = saveConversationSnapshot(req.currentUser.id, stateToSave);
+
+    res.json(snapshot);
+  } catch (error) {
+    console.error('Conversation sync error:', error);
+    res.status(500).json({ error: 'Unable to save conversations right now.' });
+  }
+});
 
 /*
 app.get('/auth/google/callback', 

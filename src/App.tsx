@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import AuthModal from "./components/AuthModal";
 import VoiceInput from "./components/VoiceInput";
 import QuickActions from "./components/QuickActions";
 import MessageBubble from "./components/MessageBubble";
@@ -28,6 +29,22 @@ interface Tab {
   }>;
 }
 
+interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+}
+
+const createDefaultTabs = (): Tab[] => [
+  { id: "1", title: "New session", type: "chat", messages: [] },
+];
+
+const hasMeaningfulConversationData = (candidateTabs: Tab[]) =>
+  candidateTabs.length > 1 ||
+  candidateTabs.some(
+    (tab) => tab.type === "whiteboard" || (tab.messages?.length ?? 0) > 0
+  );
+
 function App() {
   const [showSummarizer, setShowSummarizer] = useState(false);
   const [message, setMessage] = useState("");
@@ -38,14 +55,12 @@ function App() {
       const savedTabs = localStorage.getItem("balvis_tabs");
       if (savedTabs) {
         const parsedTabs = JSON.parse(savedTabs);
-        return parsedTabs.length > 0
-          ? parsedTabs
-          : [{ id: "1", title: "New session", messages: [] }];
+        return parsedTabs.length > 0 ? parsedTabs : createDefaultTabs();
       }
-      return [{ id: "1", title: "New session", messages: [] }];
+      return createDefaultTabs();
     } catch (error) {
       console.error("Error loading saved tabs:", error);
-      return [{ id: "1", title: "New session", messages: [] }];
+      return createDefaultTabs();
     }
   });
 
@@ -62,11 +77,22 @@ function App() {
   });
   const [isListening, setIsListening] = useState(false);
   const [showToolTray, setShowToolTray] = useState(false);
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"login" | "register">(
+    "login"
+  );
+  const [remoteConversationsReady, setRemoteConversationsReady] =
+    useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const tabsRef = useRef<Tab[]>(tabs);
+  const activeTabIdRef = useRef(activeTabId);
 
   // Get current active tab
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) || tabs[0];
+  const activeTab =
+    tabs.find((tab) => tab.id === activeTabId) || tabs[0] || createDefaultTabs()[0];
   const messages = activeTab.messages;
   const showEmptyState =
     activeTab.type !== "whiteboard" &&
@@ -84,6 +110,48 @@ function App() {
       )
     );
   };
+
+  const saveRemoteConversations = useCallback(
+    async (nextTabs: Tab[], nextActiveTabId: string) => {
+      const response = await fetch(apiUrl("/api/conversations"), {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          tabs: nextTabs,
+          activeTabId: nextActiveTabId,
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.error || "Unable to save conversations.");
+      }
+    },
+    []
+  );
+
+  const loadAuthStatus = useCallback(async () => {
+    try {
+      const response = await fetch(apiUrl("/auth/status"), {
+        credentials: "include",
+      });
+      const payload = await response.json();
+
+      if (!response.ok) {
+        throw new Error(payload.error || "Unable to check account status.");
+      }
+
+      setAuthUser(payload.authenticated ? payload.user : null);
+    } catch (error) {
+      console.error("Error checking auth status:", error);
+      setAuthUser(null);
+    } finally {
+      setAuthLoading(false);
+    }
+  }, []);
 
   // Tab management functions
   const handleTabSelect = (tabId: string) => {
@@ -203,6 +271,31 @@ function App() {
     );
   };
 
+  const handleOpenAuth = (mode: "login" | "register" = "login") => {
+    setAuthModalMode(mode);
+    setShowAuthModal(true);
+  };
+
+  const handleAuthSuccess = (user: AuthUser) => {
+    setAuthUser(user);
+    setAuthLoading(false);
+    setRemoteConversationsReady(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await fetch(apiUrl("/auth/logout"), {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+    } finally {
+      setAuthUser(null);
+      setRemoteConversationsReady(false);
+    }
+  };
+
   // Auto-update tab title based on first user message
   const updateTabTitle = (message: string) => {
     if (activeTab.messages.length === 0 && activeTab.title === "New session") {
@@ -234,6 +327,18 @@ function App() {
     localStorage.setItem("darkMode", darkMode.toString());
   }, [darkMode]);
 
+  useEffect(() => {
+    tabsRef.current = tabs;
+  }, [tabs]);
+
+  useEffect(() => {
+    activeTabIdRef.current = activeTabId;
+  }, [activeTabId]);
+
+  useEffect(() => {
+    loadAuthStatus();
+  }, [loadAuthStatus]);
+
   // Save tabs to localStorage whenever tabs change
   useEffect(() => {
     try {
@@ -250,6 +355,94 @@ function App() {
   useEffect(() => {
     setShowToolTray(false);
   }, [activeTabId, showSummarizer]);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
+    }
+
+    if (!authUser) {
+      setRemoteConversationsReady(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    const hydrateRemoteConversations = async () => {
+      try {
+        const response = await fetch(apiUrl("/api/conversations"), {
+          credentials: "include",
+        });
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || "Unable to load saved conversations.");
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const remoteTabs: Tab[] = Array.isArray(payload.tabs) ? payload.tabs : [];
+        const remoteHasContent = hasMeaningfulConversationData(remoteTabs);
+        const localTabs = tabsRef.current;
+        const localHasContent = hasMeaningfulConversationData(localTabs);
+
+        if (remoteHasContent) {
+          setTabs(remoteTabs);
+
+          const nextActiveTabId = remoteTabs.some(
+            (tab) => tab.id === payload.activeTabId
+          )
+            ? payload.activeTabId
+            : remoteTabs[0]?.id || "1";
+
+          setActiveTabId(nextActiveTabId);
+          localStorage.setItem("balvis_active_tab", nextActiveTabId);
+        } else if (localHasContent) {
+          await saveRemoteConversations(
+            localTabs,
+            activeTabIdRef.current || localTabs[0]?.id || "1"
+          );
+        }
+
+        if (!cancelled) {
+          setRemoteConversationsReady(true);
+        }
+      } catch (error) {
+        console.error("Error loading remote conversations:", error);
+      }
+    };
+
+    hydrateRemoteConversations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, authUser, saveRemoteConversations]);
+
+  useEffect(() => {
+    if (authLoading || !authUser || !remoteConversationsReady) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      saveRemoteConversations(tabs, activeTabId).catch((error) => {
+        console.error("Error saving remote conversations:", error);
+      });
+    }, 600);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [
+    activeTabId,
+    authLoading,
+    authUser,
+    remoteConversationsReady,
+    saveRemoteConversations,
+    tabs,
+  ]);
 
   // Adjust textarea height when message changes
   useEffect(() => {
@@ -509,6 +702,10 @@ function App() {
         darkMode={darkMode}
         setDarkMode={setDarkMode}
         onClearConversation={handleClearConversation}
+        authLoading={authLoading}
+        user={authUser}
+        onOpenAuth={() => handleOpenAuth("login")}
+        onLogout={handleLogout}
       />
 
       <ConversationTabs
@@ -722,6 +919,13 @@ function App() {
           </div>
         )}
       </main>
+
+      <AuthModal
+        open={showAuthModal}
+        initialMode={authModalMode}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }
