@@ -32,5 +32,7 @@ dist-ssr
 # Backend data files
 backend/data/
 backend/uploads/
+uploads/
 *.csv
 output/
+.playwright-cli/

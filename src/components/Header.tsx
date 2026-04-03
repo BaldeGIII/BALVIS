@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { FiMoon, FiRefreshCw, FiSun } from "react-icons/fi";
 
 interface HeaderProps {
@@ -10,7 +11,6 @@ interface HeaderProps {
     name: string;
     email: string;
   } | null;
-  onOpenAuth: () => void;
   onLogout: () => void;
 }
 
@@ -20,18 +20,17 @@ const Header: React.FC<HeaderProps> = ({
   onClearConversation,
   authLoading,
   user,
-  onOpenAuth,
   onLogout,
 }) => {
   return (
     <header className="relative z-30 px-4 pb-2 pt-3 sm:px-6 sm:pt-4">
       <div className="mx-auto flex w-full max-w-[82rem] items-center justify-between gap-3 rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-4 py-3 shadow-[0_10px_24px_rgba(63,43,25,0.07)] backdrop-blur-xl sm:px-5">
-        <div className="min-w-0">
+        <Link to="/app" className="min-w-0">
           <p className="caption-label">BALVIS</p>
           <p className="mt-1 truncate text-sm text-[color:var(--muted)]">
             A study workspace for questions, notes, videos, and whiteboards.
           </p>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-2">
           {authLoading ? (
@@ -40,6 +39,12 @@ const Header: React.FC<HeaderProps> = ({
             </div>
           ) : user ? (
             <>
+              <Link
+                to="/settings"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              >
+                Settings
+              </Link>
               <div className="hidden items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/60 px-3 py-1.5 text-sm text-[color:var(--text)] sm:inline-flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-xs font-semibold text-[color:var(--accent)]">
                   {user.name.charAt(0).toUpperCase()}
@@ -57,13 +62,13 @@ const Header: React.FC<HeaderProps> = ({
               </button>
             </>
           ) : (
-            <button
-              onClick={onOpenAuth}
+            <Link
+              to="/auth"
               className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
               title="Sign in"
             >
               Sign in
-            </button>
+            </Link>
           )}
 
           <button

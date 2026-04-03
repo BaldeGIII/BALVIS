@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import AuthModal from "./components/AuthModal";
 import VoiceInput from "./components/VoiceInput";
 import QuickActions from "./components/QuickActions";
 import MessageBubble from "./components/MessageBubble";
@@ -9,6 +8,12 @@ import ConversationTabs from "./components/ConversationTabs";
 import Whiteboard from "./components/Whiteboard";
 import { apiUrl, createApiHeaders } from "./lib/api";
 import {
+  createSessionHeaders,
+  fetchAuthStatus,
+  logoutAccount,
+  type AuthUser,
+} from "./lib/auth";
+import {
   FiArrowRight,
   FiChevronDown,
   FiChevronUp,
@@ -17,6 +22,7 @@ import {
   FiMessageSquare,
   FiSearch,
 } from "react-icons/fi";
+import { useLocation, useNavigate } from "react-router-dom";
 
 interface Tab {
   id: string;
@@ -27,12 +33,6 @@ interface Tab {
     content: string;
     originalText?: string;
   }>;
-}
-
-interface AuthUser {
-  id: string;
-  name: string;
-  email: string;
 }
 
 const createDefaultTabs = (): Tab[] => [
@@ -79,16 +79,14 @@ function App() {
   const [showToolTray, setShowToolTray] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"login" | "register">(
-    "login"
-  );
   const [remoteConversationsReady, setRemoteConversationsReady] =
     useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const tabsRef = useRef<Tab[]>(tabs);
   const activeTabIdRef = useRef(activeTabId);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // Get current active tab
   const activeTab =
@@ -111,14 +109,66 @@ function App() {
     );
   };
 
+  const persistActiveTabId = useCallback((tabId: string) => {
+    setActiveTabId(tabId);
+    localStorage.setItem("balvis_active_tab", tabId);
+  }, []);
+
+  const openOrCreateChatTab = useCallback(() => {
+    const existingChatTab = tabsRef.current.find(
+      (tab) => tab.type !== "whiteboard"
+    );
+
+    if (existingChatTab) {
+      persistActiveTabId(existingChatTab.id);
+      return existingChatTab.id;
+    }
+
+    const newTabId = Date.now().toString();
+    const newTab: Tab = {
+      id: newTabId,
+      title: "New session",
+      type: "chat",
+      messages: [],
+    };
+
+    setTabs((prev) => [...prev, newTab]);
+    persistActiveTabId(newTabId);
+    return newTabId;
+  }, [persistActiveTabId]);
+
+  const openOrCreateWhiteboardTab = useCallback(() => {
+    const existingWhiteboardTab = tabsRef.current.find(
+      (tab) => tab.type === "whiteboard"
+    );
+
+    if (existingWhiteboardTab) {
+      persistActiveTabId(existingWhiteboardTab.id);
+      return existingWhiteboardTab.id;
+    }
+
+    const newTabId = `whiteboard-${Date.now()}`;
+    const newTab: Tab = {
+      id: newTabId,
+      title: "Whiteboard",
+      type: "whiteboard",
+      messages: [],
+    };
+
+    setTabs((prev) => [...prev, newTab]);
+    persistActiveTabId(newTabId);
+    return newTabId;
+  }, [persistActiveTabId]);
+
   const saveRemoteConversations = useCallback(
     async (nextTabs: Tab[], nextActiveTabId: string) => {
+      const headers = await createSessionHeaders({
+        "Content-Type": "application/json",
+      });
       const response = await fetch(apiUrl("/api/conversations"), {
         method: "PUT",
         credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify({
           tabs: nextTabs,
           activeTabId: nextActiveTabId,
@@ -135,15 +185,7 @@ function App() {
 
   const loadAuthStatus = useCallback(async () => {
     try {
-      const response = await fetch(apiUrl("/auth/status"), {
-        credentials: "include",
-      });
-      const payload = await response.json();
-
-      if (!response.ok) {
-        throw new Error(payload.error || "Unable to check account status.");
-      }
-
+      const payload = await fetchAuthStatus();
       setAuthUser(payload.authenticated ? payload.user : null);
     } catch (error) {
       console.error("Error checking auth status:", error);
@@ -155,8 +197,15 @@ function App() {
 
   // Tab management functions
   const handleTabSelect = (tabId: string) => {
-    setActiveTabId(tabId);
-    localStorage.setItem("balvis_active_tab", tabId);
+    const selectedTab = tabs.find((tab) => tab.id === tabId);
+    persistActiveTabId(tabId);
+
+    if (selectedTab?.type === "whiteboard") {
+      navigate("/app/whiteboard");
+      return;
+    }
+
+    navigate("/app");
   };
 
   const handleTabCreate = () => {
@@ -168,21 +217,13 @@ function App() {
       messages: [],
     };
     setTabs((prev) => [...prev, newTab]);
-    setActiveTabId(newTabId);
-    localStorage.setItem("balvis_active_tab", newTabId);
+    persistActiveTabId(newTabId);
+    navigate("/app");
   };
 
   const handleWhiteboardTabCreate = () => {
-    const newTabId = `whiteboard-${Date.now()}`;
-    const newTab: Tab = {
-      id: newTabId,
-      title: "Whiteboard",
-      type: "whiteboard",
-      messages: [],
-    };
-    setTabs((prev) => [...prev, newTab]);
-    setActiveTabId(newTabId);
-    localStorage.setItem("balvis_active_tab", newTabId);
+    openOrCreateWhiteboardTab();
+    navigate("/app/whiteboard");
   };
 
   const handleWhiteboardAnalyze = async (imageData: string) => {
@@ -223,8 +264,8 @@ function App() {
       setTabs(newTabs);
 
       // Switch to the new analysis tab
-      setActiveTabId(newTabId);
-      localStorage.setItem("balvis_active_tab", newTabId);
+      persistActiveTabId(newTabId);
+      navigate("/app");
     } catch (error) {
       console.error("Whiteboard analysis error:", error);
       const message =
@@ -250,8 +291,8 @@ function App() {
         messages: [],
       };
       setTabs([newTab]);
-      setActiveTabId(newTabId);
-      localStorage.setItem("balvis_active_tab", newTabId);
+      persistActiveTabId(newTabId);
+      navigate("/app");
       return;
     }
 
@@ -259,9 +300,9 @@ function App() {
 
     // If deleting active tab, switch to the first remaining tab
     if (tabId === activeTabId) {
-      const newActiveTabId = updatedTabs[0].id;
-      setActiveTabId(newActiveTabId);
-      localStorage.setItem("balvis_active_tab", newActiveTabId);
+      const nextActiveTab = updatedTabs[0];
+      persistActiveTabId(nextActiveTab.id);
+      navigate(nextActiveTab.type === "whiteboard" ? "/app/whiteboard" : "/app");
     }
   };
 
@@ -271,28 +312,15 @@ function App() {
     );
   };
 
-  const handleOpenAuth = (mode: "login" | "register" = "login") => {
-    setAuthModalMode(mode);
-    setShowAuthModal(true);
-  };
-
-  const handleAuthSuccess = (user: AuthUser) => {
-    setAuthUser(user);
-    setAuthLoading(false);
-    setRemoteConversationsReady(false);
-  };
-
   const handleLogout = async () => {
     try {
-      await fetch(apiUrl("/auth/logout"), {
-        method: "POST",
-        credentials: "include",
-      });
+      await logoutAccount();
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
       setAuthUser(null);
       setRemoteConversationsReady(false);
+      navigate("/auth", { replace: true });
     }
   };
 
@@ -338,6 +366,37 @@ function App() {
   useEffect(() => {
     loadAuthStatus();
   }, [loadAuthStatus]);
+
+  useEffect(() => {
+    if (!authLoading && !authUser) {
+      navigate("/auth", { replace: true });
+    }
+  }, [authLoading, authUser, navigate]);
+
+  useEffect(() => {
+    if (location.pathname === "/app/whiteboard") {
+      setShowToolTray(false);
+      setShowSummarizer(false);
+      openOrCreateWhiteboardTab();
+      return;
+    }
+
+    if (location.pathname === "/app/summarize") {
+      const currentTab = tabsRef.current.find(
+        (tab) => tab.id === activeTabIdRef.current
+      );
+
+      if (!currentTab || currentTab.type === "whiteboard") {
+        openOrCreateChatTab();
+      }
+
+      setShowToolTray(false);
+      setShowSummarizer(true);
+      return;
+    }
+
+    setShowSummarizer(false);
+  }, [location.pathname, openOrCreateChatTab, openOrCreateWhiteboardTab]);
 
   // Save tabs to localStorage whenever tabs change
   useEffect(() => {
@@ -593,6 +652,9 @@ function App() {
     } finally {
       setLoading(false);
       setShowSummarizer(false);
+      if (location.pathname === "/app/summarize") {
+        navigate("/app");
+      }
     }
   };
 
@@ -653,8 +715,15 @@ function App() {
 
   const openSummarizer = () => {
     setShowToolTray(false);
-    setShowSummarizer(true);
+    navigate("/app/summarize");
     setTimeout(() => scrollToBottom(), 100);
+  };
+
+  const closeSummarizer = () => {
+    setShowSummarizer(false);
+    if (location.pathname === "/app/summarize") {
+      navigate("/app");
+    }
   };
 
   const handleQuickActionSelection = (action: string) => {
@@ -704,7 +773,6 @@ function App() {
         onClearConversation={handleClearConversation}
         authLoading={authLoading}
         user={authUser}
-        onOpenAuth={() => handleOpenAuth("login")}
         onLogout={handleLogout}
       />
 
@@ -829,7 +897,7 @@ function App() {
                     <div className="panel-strong overflow-hidden rounded-[28px]">
                       <TextSummarizer
                         apiKey={apiKey}
-                        onClose={() => setShowSummarizer(false)}
+                        onClose={closeSummarizer}
                         onSummaryResult={(text, source) =>
                           handleSummarize(text, source)
                         }
@@ -920,12 +988,6 @@ function App() {
         )}
       </main>
 
-      <AuthModal
-        open={showAuthModal}
-        initialMode={authModalMode}
-        onClose={() => setShowAuthModal(false)}
-        onAuthSuccess={handleAuthSuccess}
-      />
     </div>
   );
 }
