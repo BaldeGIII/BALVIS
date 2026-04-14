@@ -22,6 +22,11 @@ interface BaseResponse {
   csrfToken?: string;
 }
 
+interface ProfileResponse extends BaseResponse {
+  success: boolean;
+  user: AuthUser;
+}
+
 let currentCsrfToken = "";
 
 async function parseAuthResponse(response: Response) {
@@ -189,4 +194,18 @@ export async function resetPassword(payload: {
     csrfToken?: string;
     error?: string;
   }>(response);
+}
+
+export async function updateProfile(payload: { name: string }) {
+  const headers = await createSessionHeaders({
+    "Content-Type": "application/json",
+  });
+  const response = await fetch(apiUrl("/auth/profile"), {
+    method: "PATCH",
+    credentials: "include",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseBaseResponse<ProfileResponse>(response);
 }

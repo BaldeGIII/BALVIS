@@ -13,6 +13,7 @@ import {
   logoutAccount,
   type AuthUser,
 } from "./lib/auth";
+import { getStoredDarkMode, persistDarkMode } from "./lib/theme";
 import {
   FiArrowRight,
   FiChevronDown,
@@ -72,9 +73,7 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [whiteboardAnalyzing, setWhiteboardAnalyzing] = useState(false);
   const [apiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
-  const [darkMode, setDarkMode] = useState(() => {
-    return localStorage.getItem("darkMode") === "true";
-  });
+  const [darkMode, setDarkMode] = useState(() => getStoredDarkMode());
   const [isListening, setIsListening] = useState(false);
   const [showToolTray, setShowToolTray] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
@@ -347,12 +346,7 @@ function App() {
   };
 
   useEffect(() => {
-    if (darkMode) {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
-    }
-    localStorage.setItem("darkMode", darkMode.toString());
+    persistDarkMode(darkMode);
   }, [darkMode]);
 
   useEffect(() => {

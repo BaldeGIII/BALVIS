@@ -86,8 +86,8 @@ function AppRouter() {
         <Route path="/" element={<Navigate to="/app" replace />} />
         <Route element={<GuestRoute />}>
           <Route path="/auth" element={<AuthPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/app/*" element={<App />} />
           <Route path="/settings" element={<SettingsPage />} />

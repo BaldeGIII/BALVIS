@@ -213,6 +213,24 @@ function createUser({ name, email, password }) {
   return getUserById(userId);
 }
 
+function updateUserProfile(userId, { name }) {
+  const nextName = String(name || '').trim().slice(0, 120);
+
+  if (!nextName) {
+    return null;
+  }
+
+  const timestamp = nowIso();
+  const statement = db.prepare(`
+    UPDATE users
+    SET name = ?, updated_at = ?
+    WHERE id = ?
+  `);
+
+  statement.run(nextName, timestamp, userId);
+  return getUserById(userId);
+}
+
 function updateUserPassword(userId, password) {
   const timestamp = nowIso();
   const passwordHash = hashPassword(password);
@@ -381,5 +399,6 @@ module.exports = {
   resetPasswordWithToken,
   saveConversationSnapshot,
   updateUserPassword,
+  updateUserProfile,
   verifyUserCredentials,
 };

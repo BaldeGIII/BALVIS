@@ -21,6 +21,7 @@ const {
   resetPasswordWithToken,
   saveConversationSnapshot,
   verifyUserCredentials,
+  updateUserProfile,
 } = require('./lib/accountStore');
 
 const upload = multer({ 
@@ -514,6 +515,34 @@ app.post('/auth/logout', requireCsrfToken, (req, res) => {
     res.clearCookie('balvis.sid');
     res.json({ success: true });
   });
+});
+
+app.patch('/auth/profile', requireAuth, requireCsrfToken, (req, res) => {
+  try {
+    const name = String(req.body?.name || '').trim();
+
+    if (name.length < 2) {
+      return res.status(400).json({
+        error: 'Please enter a name with at least 2 characters.',
+      });
+    }
+
+    const user = updateUserProfile(req.currentUser.id, { name });
+
+    if (!user) {
+      return res.status(400).json({ error: 'Unable to update the profile.' });
+    }
+
+    return res.json({
+      success: true,
+      user,
+      csrfToken: ensureCsrfToken(req),
+      message: 'Profile updated.',
+    });
+  } catch (error) {
+    console.error('Profile update error:', error);
+    return res.status(500).json({ error: 'Unable to update the profile right now.' });
+  }
 });
 
 app.get('/api/conversations', requireAuth, (req, res) => {
