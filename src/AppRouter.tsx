@@ -9,6 +9,7 @@ import {
 import App from "./App";
 import { fetchAuthStatus } from "./lib/auth";
 import AuthPage from "./pages/AuthPage";
+import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import SecurityPage from "./pages/SecurityPage";
 import SettingsPage from "./pages/SettingsPage";
 
@@ -85,6 +86,7 @@ function AppRouter() {
         <Route path="/" element={<Navigate to="/app" replace />} />
         <Route element={<GuestRoute />}>
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
         <Route element={<ProtectedRoute />}>
           <Route path="/app/*" element={<App />} />

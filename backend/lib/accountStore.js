@@ -29,6 +29,16 @@ db.exec(`
     updated_at TEXT NOT NULL,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS password_reset_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token_hash TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
 `);
 
 function nowIso() {
@@ -130,6 +140,10 @@ function hashPassword(password) {
   return `${salt}:${hash}`;
 }
 
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token)).digest('hex');
+}
+
 function verifyPassword(password, storedHash) {
   const [salt, hash] = String(storedHash || '').split(':');
 
@@ -199,6 +213,20 @@ function createUser({ name, email, password }) {
   return getUserById(userId);
 }
 
+function updateUserPassword(userId, password) {
+  const timestamp = nowIso();
+  const passwordHash = hashPassword(password);
+
+  const statement = db.prepare(`
+    UPDATE users
+    SET password_hash = ?, updated_at = ?
+    WHERE id = ?
+  `);
+
+  statement.run(passwordHash, timestamp, userId);
+  return getUserById(userId);
+}
+
 function verifyUserCredentials(email, password) {
   const user = getUserByEmail(email);
 
@@ -207,6 +235,77 @@ function verifyUserCredentials(email, password) {
   }
 
   return sanitizeUser(user);
+}
+
+function createPasswordResetToken(email) {
+  const user = getUserByEmail(email);
+
+  if (!user) {
+    return null;
+  }
+
+  const timestamp = nowIso();
+  const token = crypto.randomBytes(3).toString('hex').toUpperCase();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+  db.prepare('DELETE FROM password_reset_tokens WHERE user_id = ?').run(user.id);
+
+  db.prepare(`
+    INSERT INTO password_reset_tokens (id, user_id, token_hash, expires_at, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(
+    crypto.randomUUID(),
+    user.id,
+    hashResetToken(token),
+    expiresAt,
+    timestamp
+  );
+
+  return {
+    email: user.email,
+    token,
+    expiresAt,
+  };
+}
+
+function resetPasswordWithToken(email, token, newPassword) {
+  const user = getUserByEmail(email);
+
+  if (!user) {
+    return { success: false, reason: 'invalid' };
+  }
+
+  const row = db
+    .prepare(
+      `
+        SELECT id, token_hash, expires_at, used_at
+        FROM password_reset_tokens
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT 1
+      `
+    )
+    .get(user.id);
+
+  if (!row || row.used_at) {
+    return { success: false, reason: 'invalid' };
+  }
+
+  if (new Date(row.expires_at).getTime() < Date.now()) {
+    return { success: false, reason: 'expired' };
+  }
+
+  if (hashResetToken(token) !== row.token_hash) {
+    return { success: false, reason: 'invalid' };
+  }
+
+  updateUserPassword(user.id, newPassword);
+  db.prepare('UPDATE password_reset_tokens SET used_at = ? WHERE id = ?').run(
+    nowIso(),
+    row.id
+  );
+
+  return { success: true };
 }
 
 function getConversationSnapshot(userId) {
@@ -274,10 +373,13 @@ function saveConversationSnapshot(userId, payload) {
 
 module.exports = {
   createDefaultConversationState,
+  createPasswordResetToken,
   createUser,
   getConversationSnapshot,
   getUserByEmail,
   getUserById,
+  resetPasswordWithToken,
   saveConversationSnapshot,
+  updateUserPassword,
   verifyUserCredentials,
 };

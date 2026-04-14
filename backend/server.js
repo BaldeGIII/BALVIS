@@ -13,10 +13,12 @@ const { parse, format } = require('date-fns');
 const createCsvWriter = require('csv-writer').createObjectCsvWriter;
 const {
   createDefaultConversationState,
+  createPasswordResetToken,
   createUser,
   getConversationSnapshot,
   getUserByEmail,
   getUserById,
+  resetPasswordWithToken,
   saveConversationSnapshot,
   verifyUserCredentials,
 } = require('./lib/accountStore');
@@ -436,6 +438,68 @@ app.post('/auth/login', authRateLimiter, requireCsrfToken, async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     return res.status(500).json({ error: 'Unable to sign in right now.' });
+  }
+});
+
+app.post('/auth/forgot-password', authRateLimiter, requireCsrfToken, (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    createPasswordResetToken(email);
+
+    return res.json({
+      success: true,
+      message:
+        'If that account exists, a password reset request has been created.',
+    });
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    return res.status(500).json({ error: 'Unable to start password reset right now.' });
+  }
+});
+
+app.post('/auth/reset-password', authRateLimiter, requireCsrfToken, (req, res) => {
+  try {
+    const email = String(req.body?.email || '').trim().toLowerCase();
+    const token = String(req.body?.token || '').trim().toUpperCase();
+    const password = String(req.body?.password || '');
+
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+
+    if (token.length < 6) {
+      return res.status(400).json({ error: 'Please enter the reset code.' });
+    }
+
+    if (password.length < 12) {
+      return res
+        .status(400)
+        .json({ error: 'Please use a password with at least 12 characters.' });
+    }
+
+    const result = resetPasswordWithToken(email, token, password);
+
+    if (!result.success) {
+      return res.status(result.reason === 'expired' ? 410 : 400).json({
+        error:
+          result.reason === 'expired'
+            ? 'That reset code has expired. Please request a new one.'
+            : 'That reset code is invalid. Please try again.',
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: 'Password updated. You can sign in with the new password now.',
+    });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    return res.status(500).json({ error: 'Unable to reset the password right now.' });
   }
 });
 

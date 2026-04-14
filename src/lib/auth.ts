@@ -15,6 +15,13 @@ interface AuthResponse {
   error?: string;
 }
 
+interface BaseResponse {
+  success?: boolean;
+  error?: string;
+  message?: string;
+  csrfToken?: string;
+}
+
 let currentCsrfToken = "";
 
 async function parseAuthResponse(response: Response) {
@@ -40,6 +47,26 @@ async function parseAuthResponse(response: Response) {
 
   currentCsrfToken = payload.csrfToken || currentCsrfToken;
 
+  return payload;
+}
+
+async function parseBaseResponse<T extends BaseResponse>(response: Response) {
+  const responseText = await response.text();
+  let payload = {} as T;
+
+  try {
+    payload = responseText ? (JSON.parse(responseText) as T) : payload;
+  } catch {
+    payload = {
+      error: "The server returned an unexpected response.",
+    } as T;
+  }
+
+  if (!response.ok) {
+    throw new Error(payload.error || "Unable to complete the request.");
+  }
+
+  currentCsrfToken = payload.csrfToken || currentCsrfToken;
   return payload;
 }
 
@@ -120,4 +147,46 @@ export async function logoutAccount() {
   }
 
   currentCsrfToken = "";
+}
+
+export async function requestPasswordReset(payload: { email: string }) {
+  const headers = await createSessionHeaders({
+    "Content-Type": "application/json",
+  });
+  const response = await fetch(apiUrl("/auth/forgot-password"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseBaseResponse<{
+    success: boolean;
+    message: string;
+    csrfToken?: string;
+    error?: string;
+  }>(response);
+}
+
+export async function resetPassword(payload: {
+  email: string;
+  token: string;
+  password: string;
+}) {
+  const headers = await createSessionHeaders({
+    "Content-Type": "application/json",
+  });
+  const response = await fetch(apiUrl("/auth/reset-password"), {
+    method: "POST",
+    credentials: "include",
+    headers,
+    body: JSON.stringify(payload),
+  });
+
+  return parseBaseResponse<{
+    success: boolean;
+    message: string;
+    csrfToken?: string;
+    error?: string;
+  }>(response);
 }

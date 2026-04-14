@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       proxy: {
-        "/auth": {
+        "^/auth/(status|register|login|forgot-password|reset-password|logout)$": {
           target: proxyTarget,
           changeOrigin: true,
         },

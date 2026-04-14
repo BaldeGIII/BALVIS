@@ -1,11 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { FiArrowRight } from "react-icons/fi";
-import {
-  fetchAuthStatus,
-  loginAccount,
-  registerAccount,
-} from "../lib/auth";
+import { fetchAuthStatus, loginAccount, registerAccount } from "../lib/auth";
 
 type AuthMode = "login" | "register";
 
@@ -30,7 +26,6 @@ function AuthPage() {
         const payload = await fetchAuthStatus();
         if (!cancelled && payload.authenticated) {
           navigate("/app", { replace: true });
-          return;
         }
       } catch (authError) {
         console.error("Auth page status check failed:", authError);
@@ -51,6 +46,7 @@ function AuthPage() {
   const switchMode = (nextMode: AuthMode) => {
     setError("");
     setPassword("");
+    setName("");
     setSearchParams(nextMode === "register" ? { mode: "register" } : {});
   };
 
@@ -81,7 +77,7 @@ function AuthPage() {
   if (loading) {
     return (
       <div className="app-shell flex min-h-screen items-center justify-center px-4 py-10 text-[color:var(--text)]">
-        <div className="panel-strong rounded-[28px] px-6 py-5 text-sm text-[color:var(--muted)]">
+        <div className="panel-strong rounded-[24px] px-5 py-4 text-sm text-[color:var(--muted)]">
           Checking account status...
         </div>
       </div>
@@ -89,64 +85,22 @@ function AuthPage() {
   }
 
   return (
-    <div className="app-shell min-h-screen px-4 py-6 text-[color:var(--text)] sm:px-6 sm:py-8">
-      <div className="mx-auto grid min-h-[calc(100vh-3rem)] w-full max-w-6xl gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-        <section className="panel-surface flex flex-col justify-between rounded-[30px] px-6 py-7 sm:px-8 sm:py-9">
+    <div className="app-shell min-h-screen px-4 py-5 text-[color:var(--text)] sm:px-6 sm:py-8">
+      <div className="mx-auto flex min-h-[calc(100vh-2.5rem)] w-full max-w-[28rem] items-center">
+        <section className="panel-surface w-full rounded-[28px] px-5 py-6 sm:px-7 sm:py-8">
           <div>
             <p className="caption-label">BALVIS</p>
-            <h1 className="headline-display mt-3 text-4xl font-semibold leading-tight sm:text-5xl">
-              Study in a focused workspace that remembers your progress.
+            <h1 className="headline-display mt-2 text-[2rem] font-semibold leading-tight sm:text-[2.35rem]">
+              {mode === "login"
+                ? "Sign in and keep studying"
+                : "Create your account"}
             </h1>
-            <p className="mt-4 max-w-2xl text-base leading-7 text-[color:var(--muted)]">
-              Sign in once, then return to your notes, summaries, videos, and
-              whiteboard work from the same account.
+            <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">
+              {mode === "login"
+                ? "Open your workspace and pick up where you left off."
+                : "Create your account and your study sessions will save automatically."}
             </p>
           </div>
-
-          <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            {[
-              {
-                title: "Account-backed history",
-                detail: "Conversations sync to your account instead of one browser.",
-              },
-              {
-                title: "Cleaner routing",
-                detail: "Auth, workspace, and settings now live on separate pages.",
-              },
-              {
-                title: "Security-first",
-                detail: "OWASP and NIST-inspired guardrails are built into the app flow.",
-              },
-            ].map((item) => (
-              <div
-                key={item.title}
-                className="panel-strong rounded-[22px] p-4"
-              >
-                <h2 className="text-sm font-semibold text-[color:var(--text)]">
-                  {item.title}
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-                  {item.detail}
-                </p>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section className="panel-strong flex flex-col justify-center rounded-[30px] px-5 py-6 sm:px-6">
-          <p className="caption-label">
-            {mode === "login" ? "Sign in" : "Create account"}
-          </p>
-          <h2 className="headline-display mt-2 text-3xl font-semibold leading-tight">
-            {mode === "login"
-              ? "Pick up right where you left off"
-              : "Create your BALVIS account"}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-[color:var(--muted)]">
-            {mode === "login"
-              ? "Your conversations, tabs, and study flow will load after you sign in."
-              : "Once your account is created, your study sessions will save to the database automatically."}
-          </p>
 
           <div className="mt-5 flex gap-2 rounded-full bg-white/55 p-1 dark:bg-black/10">
             <button
@@ -223,6 +177,17 @@ function AuthPage() {
               />
             </label>
 
+            {mode === "login" && (
+              <div className="flex justify-end">
+                <Link
+                  to="/forgot-password"
+                  className="text-sm font-medium text-[color:var(--accent)] transition hover:text-[color:var(--accent-strong)]"
+                >
+                  Forgot your password?
+                </Link>
+              </div>
+            )}
+
             {error && (
               <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-100">
                 {error}
@@ -244,16 +209,6 @@ function AuthPage() {
               <FiArrowRight className="h-4 w-4" />
             </button>
           </form>
-
-          <p className="mt-5 text-sm leading-6 text-[color:var(--muted)]">
-            Want to review your preferences later? Your account settings will be
-            available at{" "}
-            <code className="rounded bg-white/60 px-1.5 py-0.5 text-[color:var(--text)] dark:bg-black/10">
-              /settings
-            </code>{" "}
-            after sign-in.
-          </p>
-
         </section>
       </div>
     </div>
