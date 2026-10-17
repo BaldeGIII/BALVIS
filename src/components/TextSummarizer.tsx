@@ -83,7 +83,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
       <button
         type="button"
         onClick={onClose}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
         aria-label="Close"
       >
         <FiX className="h-4 w-4" />
@@ -103,7 +103,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="button"
             onClick={() => setMode("upload")}
-            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white dark:bg-black/10"
+            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] p-5 text-left transition hover:-translate-y-0.5 hover:bg-[color:var(--accent-soft)]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
               <FiUploadCloud className="h-5 w-5" />
@@ -119,7 +119,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="button"
             onClick={() => setMode("manual")}
-            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 p-5 text-left transition hover:-translate-y-0.5 hover:bg-white dark:bg-black/10"
+            className="group rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] p-5 text-left transition hover:-translate-y-0.5 hover:bg-[color:var(--accent-soft)]"
           >
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
               <FiFileText className="h-5 w-5" />
@@ -145,7 +145,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
         )}
 
         <div
-          className="mt-6 rounded-[24px] border border-dashed border-[color:var(--surface-border)] bg-white/60 p-10 text-center transition hover:bg-white/80 dark:bg-black/10"
+          className="mt-6 rounded-[24px] border border-dashed border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] p-10 text-center transition hover:bg-[color:var(--accent-soft)]"
           onClick={() => fileInputRef.current?.click()}
         >
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[color:var(--accent-soft)] text-[color:var(--accent)]">
@@ -181,7 +181,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="button"
             onClick={() => setMode("select")}
-            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
             disabled={isUploading}
           >
             <FiArrowLeft className="h-4 w-4" />
@@ -190,7 +190,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full bg-[color:var(--text)] px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90"
+            className="rounded-full bg-[color:var(--text)] px-4 py-2 text-sm font-semibold text-[color:var(--bg)] transition hover:opacity-90"
             disabled={isUploading}
           >
             Close
@@ -216,7 +216,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
         </label>
         <textarea
           id="text-to-summarize"
-          className="mt-3 h-56 w-full rounded-[24px] border border-[color:var(--surface-border)] bg-white/80 px-5 py-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+          className="mt-3 h-56 w-full rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-5 py-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder="Paste your notes, reading, or assignment prompt here..."
@@ -226,7 +226,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="button"
             onClick={() => setMode("select")}
-            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] px-4 py-2 text-sm font-semibold text-[color:var(--muted)] transition hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
           >
             <FiArrowLeft className="h-4 w-4" />
             Back
@@ -234,7 +234,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           <button
             type="submit"
             disabled={!text.trim()}
-            className="rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+            className="rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
           >
             Create summary
           </button>

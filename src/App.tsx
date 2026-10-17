@@ -6,6 +6,10 @@ import Header from "./components/Header";
 import TextSummarizer from "./components/TextSummarizer";
 import ConversationTabs from "./components/ConversationTabs";
 import Whiteboard from "./components/Whiteboard";
+import ResearchPanel, { type PanelTab } from "./components/ResearchPanel";
+import { runAgent } from "./lib/agent";
+import { docContext, type Doc, type Paper } from "./lib/research";
+import { cancelSpeech, speak as speakAloud } from "./lib/speech";
 import { apiUrl, createApiHeaders } from "./lib/api";
 import {
   createSessionHeaders,
@@ -18,10 +22,14 @@ import {
   FiArrowRight,
   FiChevronDown,
   FiChevronUp,
+  FiHelpCircle,
   FiEdit3,
   FiFileText,
   FiMessageSquare,
   FiSearch,
+  FiSidebar,
+  FiVolume2,
+  FiVolumeX,
 } from "react-icons/fi";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -75,6 +83,18 @@ function App() {
   const [apiKey] = useState(() => localStorage.getItem("openai_api_key") || "");
   const [darkMode, setDarkMode] = useState(() => getStoredDarkMode());
   const [isListening, setIsListening] = useState(false);
+  const [speaking, setSpeaking] = useState(false);
+  const [panelOpen, setPanelOpen] = useState(() => window.innerWidth >= 1024);
+  const [panelTab, setPanelTab] = useState<PanelTab>("papers");
+  const [agentStatus, setAgentStatus] = useState("");
+  const [injectedPapers, setInjectedPapers] = useState<{ papers: Paper[]; status: Record<string, string>; n: number } | null>(null);
+  const [filesVersion, setFilesVersion] = useState(0);
+  const [activeDoc, setActiveDoc] = useState<Doc | null>(null);
+  const [socratic, setSocratic] = useState(false);
+  const handleDocChange = useCallback((d: Doc | null) => setActiveDoc(d), []);
+  const [voiceReplies, setVoiceReplies] = useState(
+    () => localStorage.getItem("balvis_voice_replies") !== "false"
+  );
   const [showToolTray, setShowToolTray] = useState(false);
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
@@ -390,7 +410,13 @@ function App() {
     }
 
     setShowSummarizer(false);
-  }, [location.pathname, openOrCreateChatTab, openOrCreateWhiteboardTab]);
+    // remoteConversationsReady: hydration replaces tabs, so re-apply the route afterwards
+  }, [
+    location.pathname,
+    openOrCreateChatTab,
+    openOrCreateWhiteboardTab,
+    remoteConversationsReady,
+  ]);
 
   // Save tabs to localStorage whenever tabs change
   useEffect(() => {
@@ -402,7 +428,7 @@ function App() {
   }, [tabs]);
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0 || showSummarizer) scrollToBottom();
   }, [messages, showSummarizer]);
 
   useEffect(() => {
@@ -545,10 +571,43 @@ function App() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!message.trim()) return;
+  const speak = useCallback(
+    (text: string) =>
+      speakAloud(text, {
+        onStart: () => setSpeaking(true),
+        onEnd: () => setSpeaking(false),
+      }),
+    []
+  );
+
+  const toggleVoiceReplies = () => {
+    const next = !voiceReplies;
+    setVoiceReplies(next);
+    localStorage.setItem("balvis_voice_replies", String(next));
+    if (!next) {
+      cancelSpeech();
+      setSpeaking(false);
+    }
+  };
+
+  // "Show the slides" opens the slide viewer instead of going to the model.
+  const runLocalCommand = (text: string): string | null => {
+    if (/\b(show|open|preview|pull up)\b.*\b(slides?|deck|presentation)\b/i.test(text)) {
+      setPanelOpen(true);
+      setPanelTab("slides");
+      return activeDoc?.analysis
+        ? "Opening your slide deck."
+        : "Opening the slide viewer. Upload a PDF in the Document tab and I will build the deck.";
+    }
+
+    return null;
+  };
+
+  const sendMessage = async (text: string) => {
+    const message = text.trim();
+    if (!message || loading) return;
     setShowToolTray(false);
+    cancelSpeech();
 
     // Update tab title if this is the first message
     updateTabTitle(message);
@@ -559,26 +618,41 @@ function App() {
     ]);
     setMessage("");
 
+    const local = runLocalCommand(message);
+    if (local) {
+      setMessages((prev) => [...prev, { type: "ai", content: local }]);
+      if (voiceReplies) speak(local);
+      return;
+    }
+
     setLoading(true);
     try {
-      const headers = createApiHeaders(apiKey, {
-        "Content-Type": "application/json",
-      });
+      const reply = await runAgent(
+        {
+          message,
+          history: messages
+            .slice(-10)
+            .map((m) => ({ role: m.type === "ai" ? "assistant" : "user", content: m.content })),
+          mode: socratic ? "socratic" : undefined,
+          context: activeDoc ? docContext(activeDoc) : undefined,
+        },
+        (event) => {
+          if (event.type === "tool") setAgentStatus(event.label);
+          if (event.type === "papers") {
+            setInjectedPapers({ papers: event.papers, status: event.status, n: Date.now() });
+            setPanelOpen(true);
+            setPanelTab("papers");
+          }
+          if (event.type === "file") {
+            setFilesVersion((v) => v + 1);
+            setPanelOpen(true);
+            setPanelTab("files");
+          }
+        }
+      );
 
-      const res = await fetch(apiUrl("/api/chat"), {
-        method: "POST",
-        credentials: "include",
-        headers,
-        body: JSON.stringify({ message }),
-      });
-
-      const data = await res.json();
-
-      if (data.error) {
-        throw new Error(data.error);
-      }
-
-      setMessages((prev) => [...prev, { type: "ai", content: data.reply }]);
+      setMessages((prev) => [...prev, { type: "ai", content: reply }]);
+      if (voiceReplies) speak(reply);
     } catch (error) {
       console.error("Error:", error);
       const message =
@@ -594,8 +668,19 @@ function App() {
       ]);
     } finally {
       setLoading(false);
+      setAgentStatus("");
     }
   };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    sendMessage(message);
+  };
+
+  // VoiceInput re-creates its recognizer when this callback changes, so keep it stable.
+  const sendRef = useRef(sendMessage);
+  sendRef.current = sendMessage;
+  const handleVoiceResult = useCallback((t: string) => sendRef.current(t), []);
 
   // New function to handle summarization
   const handleSummarize = async (text: string, source: string) => {
@@ -696,17 +781,6 @@ function App() {
     }
   };
 
-  // Function to clear conversation (now handled by tab deletion)
-  const handleClearConversation = () => {
-    if (tabs.length <= 1) {
-      // If only one tab, clear its messages
-      setMessages(() => []);
-    } else {
-      // If multiple tabs, delete current tab
-      handleTabDelete(activeTabId);
-    }
-  };
-
   const openSummarizer = () => {
     setShowToolTray(false);
     navigate("/app/summarize");
@@ -746,9 +820,9 @@ function App() {
       icon: FiFileText,
     },
     {
-      title: "Find a study video",
-      description: "Get a few useful videos for the topic you're learning.",
-      value: "I want to find a video about",
+      title: "Research a paper for me",
+      description: "I find it, read it, and build the slide deck or report.",
+      value: 'Find the paper "Attention Is All You Need", read it and make me a slide deck.',
       icon: FiSearch,
     },
     {
@@ -764,7 +838,6 @@ function App() {
       <Header
         darkMode={darkMode}
         setDarkMode={setDarkMode}
-        onClearConversation={handleClearConversation}
         authLoading={authLoading}
         user={authUser}
         onLogout={handleLogout}
@@ -779,10 +852,10 @@ function App() {
         onTabRename={handleTabRename}
       />
 
-      <main className="flex-1 overflow-hidden px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
+      <main className="mx-auto flex w-full max-w-[96rem] flex-1 gap-4 overflow-hidden px-4 pb-4 pt-2 sm:px-6 sm:pb-5">
         {activeTab.type === "whiteboard" ? (
           // Whiteboard in full-screen mode
-          <div className="mx-auto flex h-full w-full max-w-[82rem] overflow-hidden rounded-[28px] panel-surface">
+          <div className="flex h-full min-w-0 flex-1 overflow-hidden rounded-[28px] panel-surface">
             <Whiteboard
               onAnalyze={handleWhiteboardAnalyze}
               isAnalyzing={whiteboardAnalyzing}
@@ -791,7 +864,7 @@ function App() {
           </div>
         ) : (
           // Chat view with messages
-          <div className="mx-auto flex h-full w-full max-w-[82rem] flex-col overflow-hidden rounded-[28px] panel-surface">
+          <div className="flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[28px] panel-surface">
             <div
               className="flex-1 overflow-y-auto px-2 scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700 scrollbar-track-transparent"
               tabIndex={0}
@@ -820,14 +893,16 @@ function App() {
                 {showEmptyState && (
                   <section className="animate-fade-in py-4 sm:py-5">
                     <div className="mx-auto max-w-[42rem] text-center">
-                      <p className="caption-label mb-3">Start a study session</p>
+                      <p className="caption-label mb-3">B.A.L.V.I.S. online</p>
                       <h2 className="headline-display text-[2rem] font-semibold leading-tight text-[color:var(--text)] sm:text-[2.5rem]">
-                        Ask a question, summarize notes, or work through a
-                        problem.
+                        {authUser?.name
+                          ? `At your service, ${authUser.name.split(" ")[0]}.`
+                          : "At your service."}
                       </h2>
                       <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-[color:var(--muted)] sm:text-base">
-                        Keep the first step simple. Start with a concept, a
-                        reading, or a sketch you want help unpacking.
+                        Tap the core and speak, or type below. I can explain
+                        concepts, summarize notes, find videos, and read your
+                        whiteboard.
                       </p>
                     </div>
 
@@ -881,7 +956,7 @@ function App() {
                       <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce delay-100" />
                       <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce delay-200" />
                     </div>
-                    Working on it
+                    {agentStatus || "Processing"}
                   </div>
                 )}
 
@@ -926,13 +1001,13 @@ function App() {
                             // Regular Enter - submit the form
                             e.preventDefault();
                             if (message.trim() && !loading) {
-                              handleSubmit(e as any);
+                              sendMessage(message);
                             }
                           }
                           // Shift+Enter will naturally create a new line
                         }}
-                        placeholder="Ask about a concept, reading, assignment, or worked example"
-                        className="min-h-[48px] w-full resize-none bg-transparent px-2 py-1 text-[15px] leading-7 text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
+                        placeholder="Speak or type a command, sir"
+                        className="min-h-[48px] w-full resize-none border-0 bg-transparent focus:ring-0 px-2 py-1 text-[15px] leading-7 text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
                         style={{
                           minHeight: "48px",
                           maxHeight: "180px",
@@ -942,31 +1017,68 @@ function App() {
                         disabled={loading}
                       />
 
-                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[color:var(--surface-border)] pt-3">
-                        <button
-                          type="button"
-                          onClick={() => setShowToolTray((prev) => !prev)}
-                          className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
-                        >
-                          Study tools
-                          {showToolTray ? (
-                            <FiChevronUp className="h-4 w-4" />
-                          ) : (
-                            <FiChevronDown className="h-4 w-4" />
-                          )}
-                        </button>
-
+                      <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 border-t border-[color:var(--surface-border)] pt-3">
                         <div className="flex items-center gap-2">
-                          <VoiceInput
-                            isListening={isListening}
-                            setIsListening={setIsListening}
-                            onSpeechResult={setMessage}
-                            disabled={loading}
-                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowToolTray((prev) => !prev)}
+                            className="hud-button h-10"
+                          >
+                            Tools
+                            {showToolTray ? (
+                              <FiChevronUp className="h-4 w-4" />
+                            ) : (
+                              <FiChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={toggleVoiceReplies}
+                            className="hud-button h-10 w-10 justify-center !px-0"
+                            title={voiceReplies ? "Mute spoken replies" : "Speak replies aloud"}
+                            aria-label={voiceReplies ? "Mute spoken replies" : "Speak replies aloud"}
+                          >
+                            {voiceReplies ? (
+                              <FiVolume2 className="h-4 w-4" />
+                            ) : (
+                              <FiVolumeX className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSocratic((v) => !v)}
+                            className={`hud-button h-10 ${socratic ? "!border-[color:var(--accent)] !bg-[color:var(--accent)] !text-[color:var(--on-accent)]" : ""}`}
+                            title="Socratic mode: I challenge and quiz instead of just answering"
+                            aria-pressed={socratic}
+                          >
+                            <FiHelpCircle className="h-4 w-4" />
+                            <span className="hidden xl:inline">Socratic</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPanelOpen((v) => !v)}
+                            className="hud-button h-10 w-10 justify-center !px-0"
+                            title="Toggle research workspace"
+                            aria-label="Toggle research workspace"
+                          >
+                            <FiSidebar className="h-4 w-4" />
+                          </button>
+                        </div>
+
+                        <VoiceInput
+                          isListening={isListening}
+                          setIsListening={setIsListening}
+                          onSpeechResult={handleVoiceResult}
+                          disabled={loading}
+                          busy={loading}
+                          speaking={speaking}
+                        />
+
+                        <div className="flex justify-end">
                           <button
                             type="submit"
                             disabled={loading || !message.trim()}
-                            className="inline-flex h-[52px] items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[color:var(--accent)] px-5 text-sm font-bold uppercase tracking-wider text-[color:var(--on-accent)] shadow-[0_0_16px_var(--glow)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-40 disabled:shadow-none"
                           >
                             {loading ? "Working" : "Send"}
                             <FiArrowRight className="h-4 w-4" />
@@ -979,6 +1091,18 @@ function App() {
               </div>
             </div>
           </div>
+        )}
+
+        {panelOpen && (
+          <aside className="fixed inset-x-3 bottom-3 top-24 z-40 overflow-hidden rounded-[28px] panel-surface lg:static lg:z-auto lg:block lg:w-[26rem] lg:shrink-0">
+            <ResearchPanel
+              tab={panelTab}
+              onTabChange={setPanelTab}
+              injectedPapers={injectedPapers}
+              filesVersion={filesVersion}
+              onDocChange={handleDocChange}
+            />
+          </aside>
         )}
       </main>
 

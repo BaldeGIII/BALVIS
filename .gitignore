@@ -23,16 +23,25 @@ dist-ssr
 *.sln
 *.sw?
 
+# Secrets: keys live in .env files, never in git. Copy backend/.env.example to backend/.env.
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+!.env.example
+!backend/.env.example
+*.pem
+*.key
 
-# Backend data files
+# Local data: the SQLite database holds accounts (password hashes) and conversations
 backend/data/
+/data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 backend/uploads/
 uploads/
 *.csv
 output/
 .playwright-cli/
+public/ort/
+release/
+*.AppImage

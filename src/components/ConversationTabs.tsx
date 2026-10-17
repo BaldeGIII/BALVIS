@@ -59,7 +59,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
 
   return (
     <div className="px-4 pb-1 sm:px-6">
-      <div className="mx-auto w-full max-w-[82rem]">
+      <div className="mx-auto w-full max-w-[96rem]">
         <div className="flex items-center gap-2 overflow-x-auto rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-3 py-2 shadow-[0_8px_18px_rgba(63,43,25,0.05)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
           {tabs.map((tab) => (
             <div
@@ -67,7 +67,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
               className={`group flex min-w-0 max-w-xs items-center rounded-full border transition ${
                 tab.id === activeTabId
                   ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)] text-[color:var(--accent-strong)]"
-                  : "border-transparent bg-white/50 text-[color:var(--muted)] hover:border-[color:var(--surface-border)] hover:bg-white/80 dark:bg-black/10"
+                  : "border-transparent bg-[color:var(--accent-soft)] text-[color:var(--muted)] hover:border-[color:var(--surface-border)] hover:bg-[color:var(--accent-soft)]"
               }`}
             >
               {editingTabId === tab.id ? (
@@ -96,7 +96,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                   e.stopPropagation();
                   onTabDelete(tab.id);
                 }}
-                className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--muted)] opacity-0 transition group-hover:opacity-100 hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-white/10"
+                className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--muted)] opacity-0 transition group-hover:opacity-100 hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
                 title="Delete conversation"
               >
                 <FiX className="h-4 w-4" />
@@ -106,7 +106,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
 
           <button
             onClick={onTabCreate}
-            className="ml-1 inline-flex h-9 min-w-[36px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-white/60 px-3 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
+            className="ml-1 inline-flex h-9 min-w-[36px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3 text-[color:var(--muted)] transition hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
             title="New conversation"
           >
             <FiPlus className="h-4 w-4" />

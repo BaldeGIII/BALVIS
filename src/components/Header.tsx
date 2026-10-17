@@ -1,15 +1,15 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FiMoon, FiRefreshCw, FiSun } from "react-icons/fi";
+import { FiMic, FiMoon, FiSun } from "react-icons/fi";
 
 interface HeaderProps {
   darkMode: boolean;
   setDarkMode: (dark: boolean) => void;
-  onClearConversation: () => void;
   authLoading: boolean;
   user: {
     name: string;
     email: string;
+    isAdmin?: boolean;
   } | null;
   onLogout: () => void;
 }
@@ -17,35 +17,45 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({
   darkMode,
   setDarkMode,
-  onClearConversation,
   authLoading,
   user,
   onLogout,
 }) => {
   return (
     <header className="relative z-30 px-4 pb-2 pt-3 sm:px-6 sm:pt-4">
-      <div className="mx-auto flex w-full max-w-[82rem] items-center justify-between gap-3 rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-4 py-3 shadow-[0_10px_24px_rgba(63,43,25,0.07)] backdrop-blur-xl sm:px-5">
+      <div className="mx-auto flex w-full max-w-[96rem] items-center justify-between gap-3 rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-4 py-3 shadow-[0_10px_24px_rgba(63,43,25,0.07)] backdrop-blur-xl sm:px-5">
         <Link to="/app" className="min-w-0">
-          <p className="caption-label">BALVIS</p>
-          <p className="mt-1 truncate text-sm text-[color:var(--muted)]">
-            A study workspace for questions, notes, videos, and whiteboards.
+          <p className="caption-label flex items-center gap-2 text-sm">
+            <span className="status-dot" />
+            B.A.L.V.I.S.
+          </p>
+          <p className="mt-1 truncate text-xs uppercase tracking-[0.2em] text-[color:var(--muted)]">
+            Systems online · Voice interface ready
           </p>
         </Link>
 
         <div className="flex items-center gap-2">
           {authLoading ? (
-            <div className="hidden rounded-full border border-[color:var(--surface-border)] bg-white/60 px-3 py-2 text-xs font-medium text-[color:var(--muted)] sm:inline-flex">
+            <div className="hidden rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3 py-2 text-xs font-medium text-[color:var(--muted)] sm:inline-flex">
               Checking account
             </div>
           ) : user ? (
             <>
+              {user.isAdmin && (
+                <Link
+                  to="/admin"
+                  className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3.5 text-sm font-medium text-[color:var(--accent)] transition hover:bg-[color:var(--accent-soft)]"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 to="/settings"
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
               >
                 Settings
               </Link>
-              <div className="hidden items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/60 px-3 py-1.5 text-sm text-[color:var(--text)] sm:inline-flex">
+              <div className="hidden items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3 py-1.5 text-sm text-[color:var(--text)] sm:inline-flex">
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-xs font-semibold text-[color:var(--accent)]">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
@@ -55,7 +65,7 @@ const Header: React.FC<HeaderProps> = ({
               </div>
               <button
                 onClick={onLogout}
-                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+                className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
                 title="Sign out"
               >
                 Sign out
@@ -64,25 +74,25 @@ const Header: React.FC<HeaderProps> = ({
           ) : (
             <Link
               to="/auth"
-              className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
               title="Sign in"
             >
               Sign in
             </Link>
           )}
 
-          <button
-            onClick={onClearConversation}
-            className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-3.5 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
-            title="Clear conversation"
+          <Link
+            to="/voice"
+            className="inline-flex h-10 items-center gap-2 rounded-full border border-[color:var(--accent)] bg-[color:var(--accent-soft)] px-3.5 text-sm font-semibold text-[color:var(--accent)] transition hover:shadow-[0_0_14px_var(--glow)]"
+            title="Hands-free voice mode"
           >
-            <FiRefreshCw className="h-4 w-4" />
-            <span className="hidden sm:inline">Reset</span>
-          </button>
+            <FiMic className="h-4 w-4" />
+            <span className="hidden sm:inline">Voice mode</span>
+          </Link>
 
           <button
             onClick={() => setDarkMode(!darkMode)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-white/70 text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
             title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
             {darkMode ? <FiSun className="h-4 w-4" /> : <FiMoon className="h-4 w-4" />}

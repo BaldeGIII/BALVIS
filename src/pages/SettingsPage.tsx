@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import ApiKeySettings from "../components/ApiKeySettings";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FiArrowLeft,
@@ -184,7 +185,7 @@ function SettingsPage() {
     denied:
       "Microphone access is blocked in this browser. Re-enable it in site settings to use voice input.",
     unsupported:
-      "This browser does not expose microphone permissions cleanly. Chrome or Edge will work best for voice input.",
+      "Microphone permission could not be read here. Try the mic button: you will be asked for access if needed.",
     loading: "Checking microphone availability now.",
   }[micPermission];
 
@@ -278,7 +279,7 @@ function SettingsPage() {
               <button
                 type="submit"
                 disabled={savingProfile}
-                className="inline-flex h-11 items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-11 items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <FiUser className="h-4 w-4" />
                 {savingProfile ? "Saving profile" : "Save profile"}
@@ -318,10 +319,10 @@ function SettingsPage() {
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
                     <FiMoon className="h-4 w-4" />
-                    Comfort charcoal
+                    Stealth HUD
                   </div>
                   <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-                    A softer charcoal palette with lower contrast for longer study sessions.
+                    Dark cyan interface with glowing accents. The default.
                   </p>
                 </button>
 
@@ -336,14 +337,16 @@ function SettingsPage() {
                 >
                   <div className="flex items-center gap-2 text-sm font-semibold text-[color:var(--text)]">
                     <FiSun className="h-4 w-4" />
-                    Paper light
+                    Daylight HUD
                   </div>
                   <p className="mt-2 text-sm leading-6 text-[color:var(--muted)]">
-                    A lighter reading surface with soft edges and reduced glare.
+                    A bright variant for well-lit rooms.
                   </p>
                 </button>
               </div>
             </section>
+
+            <ApiKeySettings />
 
             <section className="panel-strong rounded-[28px] p-6">
               <div className="flex items-center gap-3">

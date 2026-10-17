@@ -8,7 +8,13 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    worker: { format: "es" },
     server: {
+      headers: {
+        // Cross-origin isolation, matching the production server, so the speech model can use threads.
+        "Cross-Origin-Opener-Policy": "same-origin",
+        "Cross-Origin-Embedder-Policy": "credentialless",
+      },
       proxy: {
         "^/auth/(status|register|login|forgot-password|reset-password|logout)$": {
           target: proxyTarget,

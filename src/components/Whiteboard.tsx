@@ -152,8 +152,8 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
   const toolButtonClass = (tool: "pen" | "eraser") =>
     `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
       currentTool === tool
-        ? "bg-[color:var(--accent)] text-white"
-        : "bg-white/80 text-[color:var(--muted)] hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
+        ? "bg-[color:var(--accent)] text-[color:var(--on-accent)]"
+        : "bg-[color:var(--accent-soft)] text-[color:var(--muted)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
     }`;
 
   return (
@@ -186,7 +186,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           {isModal && onClose && (
             <button
               onClick={onClose}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-white/70 text-[color:var(--muted)] transition hover:bg-white hover:text-[color:var(--text)] dark:bg-black/10"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] text-[color:var(--muted)] transition hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
               disabled={isAnalyzing}
               title="Close whiteboard"
             >
@@ -197,7 +197,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
 
         <div className="grid gap-4 border-b soft-divider bg-[color:var(--surface)]/80 px-5 py-4 sm:grid-cols-[1.2fr_auto] sm:items-center sm:px-6">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="inline-flex items-center gap-2 rounded-full bg-white/70 p-1 dark:bg-black/10">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-soft)] p-1">
               <button onClick={() => setCurrentTool("pen")} className={toolButtonClass("pen")}>
                 <FiEdit3 className="h-4 w-4" />
                 Pen
@@ -211,7 +211,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
               </button>
             </div>
 
-            <label className="inline-flex items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-sm text-[color:var(--muted)] dark:bg-black/10">
+            <label className="inline-flex items-center gap-3 rounded-full bg-[color:var(--accent-soft)] px-4 py-2 text-sm text-[color:var(--muted)]">
               Stroke
               <input
                 type="range"
@@ -227,7 +227,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             </label>
 
             {currentTool === "pen" && (
-              <label className="inline-flex items-center gap-3 rounded-full bg-white/70 px-4 py-2 text-sm text-[color:var(--muted)] dark:bg-black/10">
+              <label className="inline-flex items-center gap-3 rounded-full bg-[color:var(--accent-soft)] px-4 py-2 text-sm text-[color:var(--muted)]">
                 Ink
                 <input
                   type="color"
@@ -242,7 +242,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
             <button
               onClick={clearCanvas}
-              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
               disabled={isAnalyzing}
             >
               <FiTrash2 className="h-4 w-4" />
@@ -250,7 +250,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             </button>
             <button
               onClick={downloadDrawing}
-              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
               disabled={isAnalyzing}
             >
               <FiDownload className="h-4 w-4" />
@@ -259,7 +259,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
             <button
               onClick={analyzeDrawing}
               disabled={isAnalyzing}
-              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent)] px-5 py-2.5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               <FiZap className="h-4 w-4" />
               {isAnalyzing ? "Analyzing" : "Analyze board"}

@@ -54,13 +54,13 @@ function SecurityPage() {
           <div className="flex items-center gap-2">
             <Link
               to="/settings"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
             >
               Settings
             </Link>
             <Link
               to="/app"
-              className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-white dark:bg-black/10"
+              className="inline-flex h-11 items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 text-sm font-medium text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
             >
               <FiArrowLeft className="h-4 w-4" />
               Back to workspace
@@ -156,7 +156,7 @@ function SecurityPage() {
                 <Link
                   key={route.to}
                   to={route.to}
-                  className="rounded-[20px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 transition hover:bg-white dark:bg-black/10"
+                  className="rounded-[20px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 transition hover:bg-[color:var(--accent-soft)]"
                 >
                   <div className="text-sm font-semibold text-[color:var(--text)]">
                     {route.label}

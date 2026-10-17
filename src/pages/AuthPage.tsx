@@ -102,13 +102,13 @@ function AuthPage() {
             </p>
           </div>
 
-          <div className="mt-5 flex gap-2 rounded-full bg-white/55 p-1 dark:bg-black/10">
+          <div className="mt-5 flex gap-2 rounded-full bg-[color:var(--accent-soft)] p-1">
             <button
               type="button"
               onClick={() => switchMode("login")}
               className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                 mode === "login"
-                  ? "bg-[color:var(--accent)] text-white"
+                  ? "bg-[color:var(--accent)] text-[color:var(--on-accent)]"
                   : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
               }`}
             >
@@ -119,7 +119,7 @@ function AuthPage() {
               onClick={() => switchMode("register")}
               className={`flex-1 rounded-full px-4 py-2.5 text-sm font-semibold transition ${
                 mode === "register"
-                  ? "bg-[color:var(--accent)] text-white"
+                  ? "bg-[color:var(--accent)] text-[color:var(--on-accent)]"
                   : "text-[color:var(--muted)] hover:text-[color:var(--text)]"
               }`}
             >
@@ -138,7 +138,7 @@ function AuthPage() {
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                   placeholder="Your name"
                   required
                 />
@@ -154,7 +154,7 @@ function AuthPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                 placeholder="you@example.com"
                 required
               />
@@ -171,7 +171,7 @@ function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                 placeholder="At least 12 characters"
                 required
               />
@@ -197,7 +197,7 @@ function AuthPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
             >
               {submitting
                 ? mode === "login"

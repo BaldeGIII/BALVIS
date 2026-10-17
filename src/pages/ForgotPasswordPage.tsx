@@ -101,7 +101,7 @@ function ForgotPasswordPage() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 py-3 pl-11 pr-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] py-3 pl-11 pr-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                     placeholder="you@example.com"
                     required
                   />
@@ -117,7 +117,7 @@ function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Preparing reset" : "Send reset code"}
                 <FiArrowRight className="h-4 w-4" />
@@ -134,7 +134,7 @@ function ForgotPasswordPage() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                   required
                 />
               </label>
@@ -149,7 +149,7 @@ function ForgotPasswordPage() {
                     type="text"
                     value={code}
                     onChange={(event) => setCode(event.target.value.toUpperCase())}
-                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 py-3 pl-11 pr-4 uppercase tracking-[0.2em] text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] py-3 pl-11 pr-4 uppercase tracking-[0.2em] text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                     placeholder="ABC123"
                     required
                   />
@@ -165,7 +165,7 @@ function ForgotPasswordPage() {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                   placeholder="At least 12 characters"
                   required
                 />
@@ -180,7 +180,7 @@ function ForgotPasswordPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-white/70 px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)] dark:bg-black/10"
+                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
                   placeholder="Repeat your new password"
                   required
                 />
@@ -201,7 +201,7 @@ function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-white transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[18px] bg-[color:var(--accent)] px-5 text-sm font-semibold text-[color:var(--on-accent)] transition hover:bg-[color:var(--accent-strong)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {submitting ? "Updating password" : "Update password"}
                 <FiArrowRight className="h-4 w-4" />

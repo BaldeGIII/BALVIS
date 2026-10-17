@@ -44,7 +44,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
   // Extract meaningful topics from summary content
   const extractMultipleTopicsFromSummary = (content: string): string[] => {
     // Remove the "Summary:" prefix and get the actual content
-    let text = content.replace(/^summary:?\s*/i, "").trim();
+    const text = content.replace(/^summary:?\s*/i, "").trim();
 
     const topics: string[] = [];
 
@@ -131,7 +131,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
 
   const formatMessage = (content: string) => {
     // First, clean up any remaining ** formatting
-    let cleanedContent = content.replace(/\*\*(.*?)\*\*/g, "$1");
+    const cleanedContent = content.replace(/\*\*(.*?)\*\*/g, "$1");
 
     // Enhanced regex to detect various YouTube URL formats
     const youtubeRegex =
@@ -323,7 +323,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         className={`relative max-w-[92%] animate-slide-in p-4 sm:max-w-[70%]
         ${
           message.type === "user"
-            ? "rounded-[22px] rounded-br-[10px] bg-[linear-gradient(135deg,#1f6b5d_0%,#2a7c6d_100%)] text-white shadow-[0_14px_30px_rgba(31,107,93,0.18)]"
+            ? "rounded-[22px] rounded-br-[10px] border border-[color:var(--warm)]/50 bg-[color:var(--warm)]/10 text-[color:var(--text)] shadow-[0_0_18px_rgba(143,174,155,0.14)]"
             : "panel-strong rounded-[22px] rounded-bl-[10px]"
         }
         transition-colors duration-200`}
@@ -333,7 +333,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold
             ${
               message.type === "user"
-                ? "bg-white/16 text-white"
+                ? "bg-[color:var(--warm)]/20 text-[color:var(--warm)]"
                 : "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
             }`}
           >
@@ -343,7 +343,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
             className={`text-[11px] font-semibold uppercase tracking-[0.18em] 
             ${
               message.type === "user"
-                ? "text-white/88"
+                ? "text-[color:var(--warm)]"
                 : "text-[color:var(--muted)]"
             }`}
           >
@@ -351,12 +351,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
           </span>
         </div>
         <div
-          className={`text-[14.5px] leading-7 font-medium
-          ${
-            message.type === "user"
-              ? "text-white"
-              : "text-[color:var(--text)]"
-          }`}
+          className="text-[16px] leading-7 font-medium text-[color:var(--text)]"
         >
           {processedContent || formatMessage(message.content)}
         </div>
@@ -377,7 +372,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                   )}`;
                   onVideoSearch(combinedQuery);
                 }}
-                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-white/70 px-4 py-2 text-sm font-semibold text-[color:var(--accent)] transition hover:bg-[color:var(--accent-soft)]"
+                className="inline-flex items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-2 text-sm font-semibold text-[color:var(--accent)] transition hover:bg-[color:var(--accent-soft)]"
               >
                 <FiPlayCircle className="h-4 w-4" />
                 Find related videos

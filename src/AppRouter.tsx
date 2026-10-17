@@ -8,7 +8,9 @@ import {
 } from "react-router-dom";
 import App from "./App";
 import { fetchAuthStatus } from "./lib/auth";
+import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
+import VoicePage from "./pages/VoicePage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import SecurityPage from "./pages/SecurityPage";
 import SettingsPage from "./pages/SettingsPage";
@@ -91,6 +93,8 @@ function AppRouter() {
         <Route element={<ProtectedRoute />}>
           <Route path="/app/*" element={<App />} />
           <Route path="/settings" element={<SettingsPage />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/voice" element={<VoicePage />} />
           <Route path="/security" element={<SecurityPage />} />
         </Route>
         <Route path="*" element={<Navigate to="/app" replace />} />

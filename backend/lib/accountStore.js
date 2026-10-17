@@ -3,7 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
 
-const DATA_DIR = path.join(__dirname, '..', 'data');
+// The desktop app points this at the user's app-data folder (the install directory is read-only).
+const DATA_DIR = process.env.BALVIS_DATA_DIR || path.join(__dirname, '..', 'data');
 const DATABASE_PATH = path.join(DATA_DIR, 'balvis.sqlite');
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -40,6 +41,67 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 `);
+
+const SESSIONS_DDL = `
+  CREATE TABLE IF NOT EXISTS sessions (
+    sid TEXT PRIMARY KEY,
+    data TEXT NOT NULL,
+    expires INTEGER NOT NULL
+  )
+`;
+
+// Re-run before every store call: a database file copied in while the app runs (backup restore, migration)
+// would otherwise lose this table and break sign-in until restart.
+function ensureSessionsTable() {
+  db.exec(SESSIONS_DDL);
+}
+
+ensureSessionsTable();
+db.prepare('DELETE FROM sessions WHERE expires < ?').run(Date.now());
+
+// express-session store on the same SQLite file, so the desktop app keeps you signed in across launches.
+function createSessionStore(session) {
+  class SqliteStore extends session.Store {
+    get(sid, callback) {
+      try {
+        ensureSessionsTable();
+        const row = db.prepare('SELECT data, expires FROM sessions WHERE sid = ?').get(sid);
+        callback(null, row && row.expires > Date.now() ? JSON.parse(row.data) : null);
+      } catch (error) {
+        callback(error);
+      }
+    }
+
+    set(sid, sess, callback) {
+      try {
+        ensureSessionsTable();
+        const expires = sess.cookie?.expires
+          ? new Date(sess.cookie.expires).getTime()
+          : Date.now() + 7 * 24 * 60 * 60 * 1000;
+        db.prepare('INSERT OR REPLACE INTO sessions (sid, data, expires) VALUES (?, ?, ?)').run(
+          sid,
+          JSON.stringify(sess),
+          expires
+        );
+        callback?.(null);
+      } catch (error) {
+        callback?.(error);
+      }
+    }
+
+    destroy(sid, callback) {
+      try {
+        ensureSessionsTable();
+        db.prepare('DELETE FROM sessions WHERE sid = ?').run(sid);
+        callback?.(null);
+      } catch (error) {
+        callback?.(error);
+      }
+    }
+  }
+
+  return new SqliteStore();
+}
 
 function nowIso() {
   return new Date().toISOString();
@@ -161,6 +223,10 @@ function verifyPassword(password, storedHash) {
   return crypto.timingSafeEqual(candidate, expected);
 }
 
+// Admin is whoever signs up with ADMIN_EMAIL (set in backend/.env); no schema change needed.
+// ponytail: register that email right away, there is no email verification. Add a role column for multiple admins.
+const ADMIN_EMAIL = normalizeEmail(process.env.ADMIN_EMAIL);
+
 function sanitizeUser(row) {
   if (!row) {
     return null;
@@ -170,6 +236,7 @@ function sanitizeUser(row) {
     id: row.id,
     name: row.name,
     email: row.email,
+    isAdmin: Boolean(ADMIN_EMAIL) && normalizeEmail(row.email) === ADMIN_EMAIL,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -211,6 +278,17 @@ function createUser({ name, email, password }) {
 
   saveConversationSnapshot(userId, createDefaultConversationState());
   return getUserById(userId);
+}
+
+function listUsers() {
+  return db
+    .prepare('SELECT id, name, email, created_at, updated_at FROM users ORDER BY created_at')
+    .all()
+    .map(sanitizeUser);
+}
+
+function deleteUser(userId) {
+  return db.prepare('DELETE FROM users WHERE id = ?').run(userId).changes > 0;
 }
 
 function updateUserProfile(userId, { name }) {
@@ -390,12 +468,15 @@ function saveConversationSnapshot(userId, payload) {
 }
 
 module.exports = {
+  createSessionStore,
   createDefaultConversationState,
   createPasswordResetToken,
   createUser,
+  deleteUser,
   getConversationSnapshot,
   getUserByEmail,
   getUserById,
+  listUsers,
   resetPasswordWithToken,
   saveConversationSnapshot,
   updateUserPassword,
