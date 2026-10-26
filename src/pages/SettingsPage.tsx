@@ -238,7 +238,7 @@ function SettingsPage() {
                   type="text"
                   value={displayName}
                   onChange={(event) => setDisplayName(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--surface-strong)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                  className="hud-field bg-[color:var(--surface-strong)]"
                   placeholder="Your name"
                   required
                 />
@@ -266,11 +266,8 @@ function SettingsPage() {
 
               {(profileError || profileMessage) && (
                 <div
-                  className={`rounded-[18px] px-4 py-3 text-sm ${
-                    profileError
-                      ? "border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-100"
-                      : "border border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-100"
-                  }`}
+                  role={profileError ? "alert" : "status"}
+                  className={`notice ${profileError ? "notice-danger" : "notice-success"}`}
                 >
                   {profileError || profileMessage}
                 </div>
@@ -313,7 +310,7 @@ function SettingsPage() {
                   onClick={() => setDarkMode(true)}
                   className={`rounded-[20px] border px-4 py-4 text-left transition ${
                     darkMode
-                      ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)]/60"
+                      ? "border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent-soft)_60%,transparent)]"
                       : "border-[color:var(--surface-border)] bg-[color:var(--surface-strong)]"
                   }`}
                 >
@@ -331,7 +328,7 @@ function SettingsPage() {
                   onClick={() => setDarkMode(false)}
                   className={`rounded-[20px] border px-4 py-4 text-left transition ${
                     !darkMode
-                      ? "border-[color:var(--accent)] bg-[color:var(--accent-soft)]/60"
+                      ? "border-[color:var(--accent)] bg-[color:color-mix(in_srgb,var(--accent-soft)_60%,transparent)]"
                       : "border-[color:var(--surface-border)] bg-[color:var(--surface-strong)]"
                   }`}
                 >

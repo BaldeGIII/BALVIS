@@ -60,7 +60,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
   return (
     <div className="px-4 pb-1 sm:px-6">
       <div className="mx-auto w-full max-w-[96rem]">
-        <div className="flex items-center gap-2 overflow-x-auto rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-3 py-2 shadow-[0_8px_18px_rgba(63,43,25,0.05)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
+        <div className="flex items-center gap-2 overflow-x-auto rounded-[22px] border soft-divider bg-[color:color-mix(in_srgb,var(--surface)_88%,transparent)] px-3 py-2 shadow-[0_8px_18px_color-mix(in_srgb,var(--accent)_8%,transparent)] backdrop-blur-lg scrollbar-thin scrollbar-thumb-stone-300 dark:scrollbar-thumb-stone-700">
           {tabs.map((tab) => (
             <div
               key={tab.id}
@@ -96,8 +96,9 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
                   e.stopPropagation();
                   onTabDelete(tab.id);
                 }}
-                className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--muted)] opacity-0 transition group-hover:opacity-100 hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
+                className="mr-1 inline-flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--muted)] opacity-60 transition group-hover:opacity-100 focus-visible:opacity-100 hover:bg-black/5 hover:text-[color:var(--text)] dark:hover:bg-[color:var(--accent-soft)]"
                 title="Delete conversation"
+                aria-label={`Delete conversation: ${tab.title}`}
               >
                 <FiX className="h-4 w-4" />
               </button>
@@ -108,6 +109,7 @@ const ConversationTabs: React.FC<ConversationTabsProps> = ({
             onClick={onTabCreate}
             className="ml-1 inline-flex h-9 min-w-[36px] items-center justify-center rounded-full border border-dashed border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3 text-[color:var(--muted)] transition hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
             title="New conversation"
+            aria-label="New conversation"
           >
             <FiPlus className="h-4 w-4" />
           </button>

@@ -8,6 +8,7 @@ import ConversationTabs from "./components/ConversationTabs";
 import Whiteboard from "./components/Whiteboard";
 import ResearchPanel, { type PanelTab } from "./components/ResearchPanel";
 import { runAgent } from "./lib/agent";
+import { scrollBehavior } from "./lib/motion";
 import { docContext, type Doc, type Paper } from "./lib/research";
 import { cancelSpeech, speak as speakAloud } from "./lib/speech";
 import { apiUrl, createApiHeaders } from "./lib/api";
@@ -362,7 +363,7 @@ function App() {
   };
 
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    messagesEndRef.current?.scrollIntoView({ behavior: scrollBehavior() });
   };
 
   useEffect(() => {
@@ -889,7 +890,12 @@ function App() {
                 }
               }}
             >
-              <div className="conversation-content mx-auto flex w-full max-w-[54rem] flex-col px-4 py-6 sm:px-6 sm:py-8">
+              <div
+                role="log"
+                aria-live="polite"
+                aria-label="Conversation"
+                className="conversation-content mx-auto flex w-full max-w-[54rem] flex-col px-4 py-6 sm:px-6 sm:py-8"
+              >
                 {showEmptyState && (
                   <section className="animate-fade-in py-4 sm:py-5">
                     <div className="mx-auto max-w-[42rem] text-center">
@@ -950,7 +956,10 @@ function App() {
                   />
                 ))}
                 {loading && (
-                  <div className="mx-auto flex max-w-sm items-center gap-3 rounded-full bg-[color:var(--surface-strong)] px-5 py-3 text-sm text-[color:var(--muted)] shadow-sm">
+                  <div
+                    role="status"
+                    className="mx-auto flex max-w-sm items-center gap-3 rounded-full bg-[color:var(--surface-strong)] px-5 py-3 text-sm text-[color:var(--muted)] shadow-sm"
+                  >
                     <div className="flex space-x-1.5">
                       <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce" />
                       <div className="h-2.5 w-2.5 rounded-full bg-[color:var(--accent)] animate-bounce delay-100" />
@@ -978,7 +987,7 @@ function App() {
                 <div ref={messagesEndRef} />
               </div>
             </div>
-            <div className="border-t soft-divider bg-[color:var(--surface-strong)]/95 px-3 py-3 backdrop-blur-xl sm:px-5 sm:py-4">
+            <div className="border-t soft-divider bg-[color:color-mix(in_srgb,var(--surface-strong)_95%,transparent)] px-3 py-3 backdrop-blur-xl sm:px-5 sm:py-4">
               <div className="mx-auto w-full max-w-[54rem]">
                 <div className="space-y-3">
                   {showToolTray && (
@@ -991,7 +1000,7 @@ function App() {
                   )}
 
                   <form onSubmit={handleSubmit}>
-                    <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:var(--surface)]/92 p-3 shadow-[0_10px_24px_rgba(28,24,20,0.08)]">
+                    <div className="rounded-[24px] border border-[color:var(--surface-border)] bg-[color:color-mix(in_srgb,var(--surface)_92%,transparent)] p-3 shadow-[0_10px_24px_color-mix(in_srgb,var(--accent)_8%,transparent)]">
                       <textarea
                         ref={textareaRef}
                         value={message}
@@ -1006,6 +1015,7 @@ function App() {
                           }
                           // Shift+Enter will naturally create a new line
                         }}
+                        aria-label="Message BALVIS"
                         placeholder="Speak or type a command, sir"
                         className="min-h-[48px] w-full resize-none border-0 bg-transparent focus:ring-0 px-2 py-1 text-[15px] leading-7 text-[color:var(--text)] outline-none placeholder:text-[color:var(--muted)]"
                         style={{

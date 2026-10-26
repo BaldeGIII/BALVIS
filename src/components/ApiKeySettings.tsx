@@ -66,6 +66,7 @@ function KeyField({ name, title, hint, placeholder, icon: Icon }: (typeof FIELDS
           value={value}
           onChange={(e) => setValue(e.target.value)}
           placeholder={placeholder}
+          aria-label={title}
           autoComplete="off"
           className="min-w-0 flex-1 rounded-full border border-[color:var(--surface-border)] bg-transparent px-4 py-2 text-sm text-[color:var(--text)] placeholder:text-[color:var(--muted)] focus:border-[color:var(--accent)] focus:ring-0"
         />
@@ -78,7 +79,7 @@ function KeyField({ name, title, hint, placeholder, icon: Icon }: (typeof FIELDS
           </button>
         )}
       </form>
-      {message && <p className="mt-3 text-sm text-[color:var(--accent)]">{message}</p>}
+      {message && <p role="status" className="mt-3 text-sm text-[color:var(--accent)]">{message}</p>}
     </section>
   );
 }

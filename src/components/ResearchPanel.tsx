@@ -44,9 +44,9 @@ const TABS: Array<{ id: PanelTab; label: string }> = [
 ];
 
 const VERDICT_STYLE = {
-  include: "text-emerald-400",
-  maybe: "text-[color:var(--accent)]",
-  exclude: "text-red-400",
+  include: "text-[color:var(--success)]",
+  maybe: "text-[color:var(--warning)]",
+  exclude: "text-[color:var(--danger)]",
 };
 
 const List = ({ title, items }: { title: string; items: string[] }) =>
@@ -212,14 +212,14 @@ export default function ResearchPanel({
           {paper.authors.length > 3 ? " et al." : ""} · {paper.date} · {paper.source}
         </p>
         {summary && (
-          <p className="mt-2 text-sm leading-6 text-[color:var(--text)]/85">{summary}</p>
+          <p className="mt-2 text-sm leading-6 text-[color:color-mix(in_srgb,var(--text)_85%,transparent)]">{summary}</p>
         )}
 
         {screening === "loading" && (
           <p className="mt-3 text-sm text-[color:var(--muted)]">Screening…</p>
         )}
         {typeof screening === "string" && screening.startsWith("error:") && (
-          <p className="mt-3 text-sm text-red-400">{screening.slice(6)}</p>
+          <p className="mt-3 text-sm text-[color:var(--danger)]">{screening.slice(6)}</p>
         )}
         {screening && typeof screening === "object" && (
           <div className="mt-3 rounded-xl border border-[color:var(--surface-border)] p-3 text-sm leading-6">
@@ -273,6 +273,7 @@ export default function ResearchPanel({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search literature"
+            aria-label="Search literature"
             className="min-w-0 flex-1 rounded-full border border-[color:var(--surface-border)] bg-transparent px-4 py-2 text-sm text-[color:var(--text)] placeholder:text-[color:var(--muted)] focus:border-[color:var(--accent)] focus:ring-0"
           />
           <button type="submit" disabled={searching} className="hud-button h-10 w-10 justify-center !px-0" aria-label="Search papers">
@@ -293,7 +294,7 @@ export default function ResearchPanel({
           </button>
         </div>
 
-        {searchError && <p className="mt-3 text-sm text-red-400">{searchError}</p>}
+        {searchError && <p role="alert" className="mt-3 text-sm text-[color:var(--danger)]">{searchError}</p>}
         {!showSaved && failed.length > 0 && (
           <p className="mt-3 text-xs text-[color:var(--accent)]">
             Unavailable right now: {failed.map(([name]) => name).join(", ")} (often a rate limit; try again shortly).
@@ -330,7 +331,7 @@ export default function ResearchPanel({
         />
       </label>
       {busy && <p className="mt-3 text-sm text-[color:var(--muted)]">{busy}…</p>}
-      {docError && <p className="mt-3 text-sm text-red-400">{docError}</p>}
+      {docError && <p role="alert" className="mt-3 text-sm text-[color:var(--danger)]">{docError}</p>}
 
       {docs.length > 1 && (
         <div className="mt-3 flex flex-wrap gap-2">
@@ -386,7 +387,7 @@ export default function ResearchPanel({
           <FiRefreshCw className="h-3.5 w-3.5" />
         </button>
       </div>
-      {fileError && <p className="mt-3 text-sm text-red-400">{fileError}</p>}
+      {fileError && <p role="alert" className="mt-3 text-sm text-[color:var(--danger)]">{fileError}</p>}
       <ul className="mt-3 space-y-2">
         {files.map((file) => (
           <li key={file.name} className="panel-strong flex items-center gap-2 rounded-[14px] p-3">
@@ -480,11 +481,13 @@ export default function ResearchPanel({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex gap-1 border-b soft-divider p-2">
+      <div role="tablist" aria-label="Research workspace" className="flex gap-1 border-b soft-divider p-2">
         {TABS.map((t) => (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={tab === t.id}
             onClick={() => onTabChange(t.id)}
             className={`flex-1 rounded-full px-3 py-2 text-xs font-bold uppercase tracking-[0.18em] transition ${
               tab === t.id
@@ -496,7 +499,7 @@ export default function ResearchPanel({
           </button>
         ))}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <div role="tabpanel" className="min-h-0 flex-1 overflow-y-auto p-4">
         {tab === "papers" && renderPapers()}
         {tab === "document" && renderDocument()}
         {tab === "slides" && renderSlides()}

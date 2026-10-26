@@ -172,7 +172,7 @@ const TextSummarizer: React.FC<TextSummarizerProps> = ({
           </p>
         )}
         {uploadError && (
-          <p className="mt-4 text-sm font-medium text-amber-700 dark:text-amber-400">
+          <p role="alert" className="mt-4 text-sm font-medium text-[color:var(--warning)]">
             {uploadError}
           </p>
         )}
