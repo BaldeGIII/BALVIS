@@ -3,41 +3,91 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * DESIGN TOKENS, three layers (see the ui-ux-pro-max design-system skill):
+   *   1. Primitives: the raw palette. Defined once; ONLY the semantic layer below may use them.
+   *   2. Semantic tokens: what a value is FOR (--bg, --text, --danger). Components use these, never raw colors.
+   *      The light and dark themes differ only in which primitive each semantic token points at.
+   *   3. Components: .panel-*, .hud-button, .hud-field, .notice (further down), built from semantic tokens.
+   * Contrast of every text token on its backgrounds is >= 4.5:1 in both themes (checked, not eyeballed).
+   */
+
+  /* ---- Layer 1: primitives ---- */
+  :root {
+    /* cyan: the primary brand hue (400/300 on dark, 700/800 on light) */
+    --cyan-300: #8fe8ff;
+    --cyan-400: #36d6ff;
+    --cyan-700: #00607a;
+    --cyan-800: #004f63;
+    /* orange: the secondary brand hue */
+    --orange-400: #ff9b3d;
+    --orange-800: #9c4d00;
+    /* status hues: one soft shade for dark backgrounds, one deep shade for light ones */
+    --red-300: #ff8a8a;
+    --red-700: #a61e14;
+    --green-400: #4ade80;
+    --green-700: #0b6b3a;
+    --amber-400: #fbbf24;
+    --amber-800: #8a4b00;
+    /* dark-theme neutrals */
+    --ink-1000: #00131a;
+    --ink-950: #02070d;
+    --ink-900: #06182a;
+    --navy-900: #051424;
+    --navy-800: #071c30;
+    --ice-100: #d6f4ff;
+    --steel-400: #7fb0c4;
+    /* light-theme neutrals */
+    --mist-100: #e4f1f6;
+    --mist-200: #cfe6ee;
+    --snow-50: #fafdff;
+    --white: #ffffff;
+    --abyss-800: #052233;
+    --abyss-500: #3d6577;
+    --teal-600: #007896;
+  }
+
+  /* ---- Layer 2: semantic tokens (light theme is the default; .dark overrides it) ---- */
   :root {
     color-scheme: light;
-    --bg: #e4f1f6;
-    --bg-accent: #cfe6ee;
-    --surface: rgba(255, 255, 255, 0.72);
-    --surface-strong: rgba(250, 253, 255, 0.92);
-    --surface-border: rgba(0, 120, 150, 0.28);
-    --text: #052233;
-    --muted: #3d6577;
-    --accent: #007d9c;
-    --accent-soft: rgba(0, 125, 156, 0.12);
-    --accent-strong: #00647d;
-    --on-accent: #ffffff;
-    --warm: #c2610a;
-    --glow: rgba(0, 125, 156, 0.35);
-    --shadow: 0 12px 32px rgba(0, 80, 110, 0.12);
+    --bg: var(--mist-100); /* page background */
+    --bg-accent: var(--mist-200); /* far end of the page gradient */
+    --surface: color-mix(in srgb, var(--white) 72%, transparent); /* panels */
+    --surface-strong: color-mix(in srgb, var(--snow-50) 92%, transparent); /* cards, raised panels */
+    --surface-border: color-mix(in srgb, var(--teal-600) 28%, transparent); /* 1px edges and dividers */
+    --text: var(--abyss-800); /* primary text */
+    --muted: var(--abyss-500); /* secondary text, placeholders */
+    --accent: var(--cyan-700); /* brand color: links, focus ring, primary buttons */
+    --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent); /* tinted fills behind accent things */
+    --accent-strong: var(--cyan-800); /* accent on tinted fills, hover state */
+    --on-accent: var(--white); /* text on a solid accent fill */
+    --warm: var(--orange-800); /* secondary brand color: your messages, listening state */
+    --glow: color-mix(in srgb, var(--accent) 35%, transparent); /* halos and glows */
+    --shadow: 0 12px 32px color-mix(in srgb, var(--cyan-700) 12%, transparent); /* panel elevation */
+    --danger: var(--red-700); /* errors, destructive actions */
+    --success: var(--green-700); /* confirmations, "include" verdicts */
+    --warning: var(--amber-800); /* cautions, recoverable problems */
   }
 
   /* BALVIS HUD: deep blue-black, cyan primary, orange secondary. */
   .dark {
     color-scheme: dark;
-    --bg: #02070d;
-    --bg-accent: #06182a;
-    --surface: rgba(5, 20, 36, 0.78);
-    --surface-strong: rgba(7, 28, 48, 0.92);
-    --surface-border: rgba(54, 214, 255, 0.26);
-    --text: #d6f4ff;
-    --muted: #7fb0c4;
-    --accent: #36d6ff;
-    --accent-soft: rgba(54, 214, 255, 0.12);
-    --accent-strong: #8fe8ff;
-    --on-accent: #00131a;
-    --warm: #ff9b3d;
-    --glow: rgba(54, 214, 255, 0.45);
-    --shadow: 0 0 32px rgba(54, 214, 255, 0.1);
+    --bg: var(--ink-950);
+    --bg-accent: var(--ink-900);
+    --surface: color-mix(in srgb, var(--navy-900) 78%, transparent);
+    --surface-strong: color-mix(in srgb, var(--navy-800) 92%, transparent);
+    --surface-border: color-mix(in srgb, var(--accent) 26%, transparent);
+    --text: var(--ice-100);
+    --muted: var(--steel-400);
+    --accent: var(--cyan-400);
+    --accent-strong: var(--cyan-300);
+    --on-accent: var(--ink-1000);
+    --warm: var(--orange-400);
+    --glow: color-mix(in srgb, var(--accent) 45%, transparent);
+    --shadow: 0 0 32px color-mix(in srgb, var(--accent) 10%, transparent);
+    --danger: var(--red-300);
+    --success: var(--green-400);
+    --warning: var(--amber-400);
   }
 
   * {
@@ -56,7 +106,7 @@
     font-size: 17px;
     font-weight: 500;
     background:
-      radial-gradient(circle at 50% 0%, rgba(0, 150, 190, 0.16), transparent 45%),
+      radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 45%),
       linear-gradient(180deg, var(--bg-accent) 0%, var(--bg) 70%);
     color: var(--text);
     transition: background 220ms ease, color 220ms ease;
@@ -64,8 +114,8 @@
 
   body.dark {
     background:
-      radial-gradient(circle at 50% -10%, rgba(54, 214, 255, 0.14), transparent 50%),
-      radial-gradient(circle at 90% 100%, rgba(255, 155, 61, 0.06), transparent 35%),
+      radial-gradient(circle at 50% -10%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 50%),
+      radial-gradient(circle at 90% 100%, color-mix(in srgb, var(--warm) 6%, transparent), transparent 35%),
       linear-gradient(180deg, var(--bg-accent) 0%, var(--bg) 70%);
   }
 
@@ -75,8 +125,14 @@
     font: inherit;
   }
 
+  /* Keyboard focus must always be visible. !important because utility classes elsewhere remove outlines. */
+  :focus-visible {
+    outline: 2px solid var(--accent) !important;
+    outline-offset: 2px;
+  }
+
   ::selection {
-    background: rgba(54, 214, 255, 0.3);
+    background: color-mix(in srgb, var(--accent) 30%, transparent);
   }
 }
 
@@ -123,7 +179,7 @@
     position: relative;
     background: var(--surface);
     border: 1px solid var(--surface-border);
-    box-shadow: var(--shadow), inset 0 0 40px rgba(54, 214, 255, 0.03);
+    box-shadow: var(--shadow), inset 0 0 40px color-mix(in srgb, var(--accent) 3%, transparent);
     backdrop-filter: blur(14px);
   }
 
@@ -158,7 +214,7 @@
   .panel-strong {
     background: var(--surface-strong);
     border: 1px solid var(--surface-border);
-    box-shadow: 0 0 18px rgba(54, 214, 255, 0.05);
+    box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 5%, transparent);
   }
 
   .soft-divider {
@@ -172,7 +228,7 @@
   }
 
   .caption-label {
-    @apply text-[11px] font-semibold uppercase tracking-[0.34em];
+    @apply text-xs font-semibold uppercase tracking-[0.3em];
     font-family: "Orbitron", sans-serif;
     color: var(--accent);
   }
@@ -360,16 +416,16 @@
   .jcore-plasma-a {
     inset: 24%;
     background:
-      radial-gradient(circle at 35% 35%, rgba(143, 232, 255, 0.95), transparent 45%),
-      radial-gradient(circle at 70% 65%, rgba(54, 214, 255, 0.7), transparent 50%);
+      radial-gradient(circle at 35% 35%, color-mix(in srgb, var(--accent-strong) 95%, transparent), transparent 45%),
+      radial-gradient(circle at 70% 65%, color-mix(in srgb, var(--accent) 70%, transparent), transparent 50%);
     animation: plasma 7s ease-in-out infinite;
   }
 
   .jcore-plasma-b {
     inset: 30%;
     background:
-      radial-gradient(circle at 60% 40%, rgba(255, 155, 61, 0.55), transparent 45%),
-      radial-gradient(circle at 30% 70%, rgba(54, 214, 255, 0.6), transparent 50%);
+      radial-gradient(circle at 60% 40%, color-mix(in srgb, var(--warm) 55%, transparent), transparent 45%),
+      radial-gradient(circle at 30% 70%, color-mix(in srgb, var(--accent) 60%, transparent), transparent 50%);
     animation: plasma 5s ease-in-out infinite reverse;
   }
 
@@ -377,7 +433,7 @@
     position: absolute;
     inset: 44%;
     border-radius: 9999px;
-    background: radial-gradient(circle, #fff 0%, var(--accent-strong) 35%, transparent 72%);
+    background: radial-gradient(circle, var(--white) 0%, var(--accent-strong) 35%, transparent 72%);
     box-shadow: 0 0 40px var(--glow), 0 0 90px var(--glow);
     transform: scale(calc(1 + var(--level) * 0.9));
     transition: transform 90ms linear;
@@ -399,6 +455,41 @@
   /* Tailwind cannot apply opacity to a CSS-variable color, so the dim layer is plain CSS. */
   .hud-overlay {
     background: color-mix(in srgb, var(--bg) 92%, transparent);
+  }
+
+  /* Status message box. Variants set --notice; border and tint derive from it, text stays --text for contrast. */
+  .notice {
+    --notice: var(--warning);
+    border-radius: 18px;
+    border: 1px solid color-mix(in srgb, var(--notice) 45%, transparent);
+    background: color-mix(in srgb, var(--notice) 14%, transparent);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    color: var(--text);
+  }
+
+  .notice-success {
+    --notice: var(--success);
+  }
+
+  .notice-danger {
+    --notice: var(--danger);
+  }
+
+  /* Text field. The global :focus-visible rule supplies the keyboard focus ring. */
+  .hud-field {
+    width: 100%;
+    border-radius: 18px;
+    border: 1px solid var(--surface-border);
+    background: var(--accent-soft);
+    padding: 0.75rem 1rem;
+    color: var(--text);
+    transition: border-color 150ms ease;
+  }
+
+  .hud-field:focus {
+    border-color: var(--accent);
   }
 
   .hud-button {
@@ -427,7 +518,17 @@
   .app-shell::after,
   .orb *,
   .jcore *,
-  .status-dot {
+  .status-dot,
+  .animate-bounce,
+  .animate-slide-in,
+  .animate-fade-in {
     animation: none !important;
+  }
+
+  .jcore,
+  .jcore-eye,
+  .orb {
+    transition: none !important;
+    transform: none !important;
   }
 }

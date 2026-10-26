@@ -153,7 +153,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
     `inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
       currentTool === tool
         ? "bg-[color:var(--accent)] text-[color:var(--on-accent)]"
-        : "bg-[color:var(--accent-soft)] text-[color:var(--muted)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
+        : "bg-[color:var(--accent-soft)] text-[color:var(--text)] hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--accent-strong)]"
     }`;
 
   return (
@@ -189,13 +189,14 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
               className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] text-[color:var(--muted)] transition hover:bg-[color:var(--accent-soft)] hover:text-[color:var(--text)]"
               disabled={isAnalyzing}
               title="Close whiteboard"
+              aria-label="Close whiteboard"
             >
               <FiX className="h-4 w-4" />
             </button>
           )}
         </div>
 
-        <div className="grid gap-4 border-b soft-divider bg-[color:var(--surface)]/80 px-5 py-4 sm:grid-cols-[1.2fr_auto] sm:items-center sm:px-6">
+        <div className="grid gap-4 border-b soft-divider bg-[color:color-mix(in_srgb,var(--surface)_80%,transparent)] px-5 py-4 sm:grid-cols-[1.2fr_auto] sm:items-center sm:px-6">
           <div className="flex flex-wrap items-center gap-3">
             <div className="inline-flex items-center gap-2 rounded-full bg-[color:var(--accent-soft)] p-1">
               <button onClick={() => setCurrentTool("pen")} className={toolButtonClass("pen")}>
@@ -267,9 +268,11 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto bg-[linear-gradient(180deg,rgba(248,244,236,0.55),rgba(234,223,207,0.52))] p-4 dark:bg-[linear-gradient(180deg,rgba(16,19,18,0.8),rgba(23,28,27,0.85))] sm:p-6">
-          <div className="mx-auto h-full rounded-[28px] border border-[color:var(--surface-border)] bg-white p-3 shadow-[0_18px_38px_rgba(64,41,25,0.08)]">
+        <div className="flex-1 overflow-auto bg-[color:var(--surface)] p-4 sm:p-6">
+          <div className="mx-auto h-full rounded-[28px] border border-[color:var(--surface-border)] bg-white p-3 shadow-[0_18px_38px_color-mix(in_srgb,var(--accent)_10%,transparent)]">
             <canvas
+              role="img"
+              aria-label="Whiteboard drawing area. Drawing needs a pointer; to ask a question without drawing, use the chat."
               ref={canvasRef}
               width={1200}
               height={700}
@@ -286,7 +289,7 @@ const Whiteboard: React.FC<WhiteboardProps> = ({
           </div>
         </div>
 
-        <div className="border-t soft-divider bg-[color:var(--surface)]/80 px-5 py-4 sm:px-6">
+        <div className="border-t soft-divider bg-[color:color-mix(in_srgb,var(--surface)_80%,transparent)] px-5 py-4 sm:px-6">
           <div className="grid gap-4 text-sm text-[color:var(--muted)] md:grid-cols-3">
             <div>
               <p className="font-semibold text-[color:var(--text)]">Good for</p>

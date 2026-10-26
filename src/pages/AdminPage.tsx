@@ -54,7 +54,7 @@ function AdminPage() {
           </Link>
         </div>
 
-        {error && <p className="text-sm text-red-400">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[color:var(--danger)]">{error}</p>}
 
         <section className="panel-surface overflow-x-auto rounded-[28px] p-2">
           <table className="w-full text-left text-sm">

@@ -23,7 +23,7 @@ const Header: React.FC<HeaderProps> = ({
 }) => {
   return (
     <header className="relative z-30 px-4 pb-2 pt-3 sm:px-6 sm:pt-4">
-      <div className="mx-auto flex w-full max-w-[96rem] items-center justify-between gap-3 rounded-[22px] border soft-divider bg-[color:var(--surface)]/88 px-4 py-3 shadow-[0_10px_24px_rgba(63,43,25,0.07)] backdrop-blur-xl sm:px-5">
+      <div className="mx-auto flex w-full max-w-[96rem] items-center justify-between gap-3 rounded-[22px] border soft-divider bg-[color:color-mix(in_srgb,var(--surface)_88%,transparent)] px-4 py-3 shadow-[0_10px_24px_color-mix(in_srgb,var(--accent)_8%,transparent)] backdrop-blur-xl sm:px-5">
         <Link to="/app" className="min-w-0">
           <p className="caption-label flex items-center gap-2 text-sm">
             <span className="status-dot" />
@@ -56,7 +56,7 @@ const Header: React.FC<HeaderProps> = ({
                 Settings
               </Link>
               <div className="hidden items-center gap-2 rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-3 py-1.5 text-sm text-[color:var(--text)] sm:inline-flex">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-xs font-semibold text-[color:var(--accent)]">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[color:var(--accent-soft)] text-xs font-semibold text-[color:var(--accent-strong)]">
                   {user.name.charAt(0).toUpperCase()}
                 </span>
                 <span className="max-w-[10rem] truncate font-medium">
@@ -94,6 +94,7 @@ const Header: React.FC<HeaderProps> = ({
             onClick={() => setDarkMode(!darkMode)}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] text-[color:var(--text)] transition hover:bg-[color:var(--accent-soft)]"
             title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+            aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           >
             {darkMode ? <FiSun className="h-4 w-4" /> : <FiMoon className="h-4 w-4" />}
           </button>

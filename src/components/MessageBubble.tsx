@@ -186,9 +186,9 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         parts.push(
           <div
             key={`video-${index}`}
-            className="mt-4 mb-4 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600"
+            className="mt-4 mb-4 rounded-lg overflow-hidden border border-[color:var(--surface-border)]"
           >
-            <h3 className="font-semibold p-3 bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-600">
+            <h3 className="font-semibold p-3 bg-[color:var(--surface-strong)] border-b border-[color:var(--surface-border)]">
               {videoTitle}
             </h3>
             <div className="relative pt-[56.25%] w-full bg-black">
@@ -206,7 +206,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
                 }}
               />
             </div>
-            <div className="p-3 bg-gray-50 dark:bg-gray-800">
+            <div className="p-3 bg-[color:var(--surface-strong)]">
               <a
                 href={fullMatch}
                 target="_blank"
@@ -284,7 +284,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
               <p className="text-blue-700 dark:text-blue-300 text-sm mb-2">
                 by {channel}
               </p>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
+              <p className="text-[color:var(--muted)] text-sm">
                 Search for this video on YouTube to watch it
               </p>
             </div>
@@ -323,24 +323,24 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         className={`relative max-w-[92%] animate-slide-in p-4 sm:max-w-[70%]
         ${
           message.type === "user"
-            ? "rounded-[22px] rounded-br-[10px] border border-[color:var(--warm)]/50 bg-[color:var(--warm)]/10 text-[color:var(--text)] shadow-[0_0_18px_rgba(143,174,155,0.14)]"
+            ? "rounded-[22px] rounded-br-[10px] border border-[color:color-mix(in_srgb,var(--warm)_50%,transparent)] bg-[color:color-mix(in_srgb,var(--warm)_10%,transparent)] text-[color:var(--text)] shadow-[0_0_18px_color-mix(in_srgb,var(--warm)_14%,transparent)]"
             : "panel-strong rounded-[22px] rounded-bl-[10px]"
         }
         transition-colors duration-200`}
       >
         <div className="mb-2 flex items-center gap-2">
           <div
-            className={`flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold
+            className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-semibold
             ${
               message.type === "user"
-                ? "bg-[color:var(--warm)]/20 text-[color:var(--warm)]"
+                ? "bg-[color:color-mix(in_srgb,var(--warm)_20%,transparent)] text-[color:var(--warm)]"
                 : "bg-[color:var(--accent-soft)] text-[color:var(--accent)]"
             }`}
           >
             {message.type === "user" ? "You" : "B"}
           </div>
           <span
-            className={`text-[11px] font-semibold uppercase tracking-[0.18em] 
+            className={`text-xs font-semibold uppercase tracking-[0.18em] 
             ${
               message.type === "user"
                 ? "text-[color:var(--warm)]"
@@ -360,7 +360,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({
         {message.type === "ai" &&
           onVideoSearch &&
           isSummaryContent(message.content) && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-600">
+            <div className="mt-3 pt-3 border-t border-[color:var(--surface-border)]">
               <button
                 onClick={() => {
                   const topics = extractMultipleTopicsFromSummary(

@@ -101,7 +101,7 @@ function ForgotPasswordPage() {
                     type="email"
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
-                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] py-3 pl-11 pr-4 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                    className="hud-field pl-11 pr-4"
                     placeholder="you@example.com"
                     required
                   />
@@ -109,7 +109,7 @@ function ForgotPasswordPage() {
               </label>
 
               {error && (
-                <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-100">
+                <div role="alert" className="notice notice-danger">
                   {error}
                 </div>
               )}
@@ -134,7 +134,7 @@ function ForgotPasswordPage() {
                   type="email"
                   value={email}
                   onChange={(event) => setEmail(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                  className="hud-field"
                   required
                 />
               </label>
@@ -149,7 +149,7 @@ function ForgotPasswordPage() {
                     type="text"
                     value={code}
                     onChange={(event) => setCode(event.target.value.toUpperCase())}
-                    className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] py-3 pl-11 pr-4 uppercase tracking-[0.2em] text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                    className="hud-field pl-11 pr-4 uppercase tracking-[0.2em]"
                     placeholder="ABC123"
                     required
                   />
@@ -165,7 +165,7 @@ function ForgotPasswordPage() {
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                  className="hud-field"
                   placeholder="At least 12 characters"
                   required
                 />
@@ -180,7 +180,7 @@ function ForgotPasswordPage() {
                   type="password"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                  className="hud-field"
                   placeholder="Repeat your new password"
                   required
                 />
@@ -188,11 +188,8 @@ function ForgotPasswordPage() {
 
               {(error || message) && (
                 <div
-                  className={`rounded-[18px] px-4 py-3 text-sm ${
-                    error
-                      ? "border border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-100"
-                      : "border border-emerald-200 bg-emerald-50 text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-100"
-                  }`}
+                  role={error ? "alert" : "status"}
+                  className={`notice ${error ? "notice-danger" : "notice-success"}`}
                 >
                   {error || message}
                 </div>
@@ -210,7 +207,7 @@ function ForgotPasswordPage() {
           )}
 
           {message && stage === "request" && !error && (
-            <div className="mt-4 rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-700/40 dark:bg-emerald-950/20 dark:text-emerald-100">
+            <div role="status" className="notice notice-success mt-4">
               {message}
             </div>
           )}

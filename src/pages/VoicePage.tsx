@@ -5,6 +5,7 @@ import { openWorkspaceFile, runAgent } from "../lib/agent";
 import type { Paper } from "../lib/research";
 import { cancelSpeech, describeMicError, speak } from "../lib/speech";
 import { cleanTranscript, loadSpeechModel, transcribe, VoiceListener } from "../lib/stt";
+import { scrollBehavior } from "../lib/motion";
 import { applyDarkMode } from "../lib/theme";
 
 type Phase = "offline" | "loading" | "standby" | "listening" | "thinking" | "speaking";
@@ -75,7 +76,7 @@ export default function VoicePage() {
   // Off by default: always listening while powered on. On: only answer after hearing the name.
   const [wakeWord, setWakeWord] = useState(() => localStorage.getItem("balvis_wake_word") === "on");
 
-  const coreRef = useRef<HTMLDivElement>(null);
+  const coreRef = useRef<HTMLButtonElement>(null);
   const waveRef = useRef<HTMLCanvasElement>(null);
   const logEndRef = useRef<HTMLDivElement>(null);
   const listenerRef = useRef<VoiceListener | null>(null);
@@ -127,7 +128,7 @@ export default function VoicePage() {
   }, []);
 
   useEffect(() => {
-    logEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    logEndRef.current?.scrollIntoView({ behavior: scrollBehavior() });
   }, [log]);
 
   useEffect(
@@ -364,7 +365,7 @@ export default function VoicePage() {
         </Link>
         <div className="text-center">
           <h1 className="headline-display text-xl font-semibold sm:text-2xl">B.A.L.V.I.S // AI CORE</h1>
-          <p className="caption-label mt-1 text-[10px]">
+          <p className="caption-label mt-1">
             NEURAL NETWORK {live ? "ACTIVE" : "OFFLINE"}
           </p>
         </div>
@@ -387,7 +388,10 @@ export default function VoicePage() {
         </div>
       </header>
 
-      <div className="relative z-10 grid min-h-0 flex-1 grid-cols-1 gap-4 px-5 py-3 lg:grid-cols-[17rem_1fr_19rem]">
+      <div
+        inert={!live}
+        className="relative z-10 grid min-h-0 flex-1 grid-cols-1 gap-4 px-5 py-3 lg:grid-cols-[17rem_1fr_19rem]"
+      >
         <aside className="hidden min-h-0 flex-col gap-4 lg:flex">
           <section className="panel-surface rounded-2xl p-4">
             <p className="caption-label mb-3">System status</p>
@@ -411,12 +415,14 @@ export default function VoicePage() {
         </aside>
 
         <section className="flex min-h-0 items-center justify-center">
-          <div
+          <button
+            type="button"
             ref={coreRef}
             data-phase={phase}
             className="jcore"
             onClick={cancelSpeech}
-            title="Tap to interrupt"
+            title="Stop speaking"
+            aria-label="Stop speaking"
           >
             <div className="jcore-plasma jcore-plasma-a" />
             <div className="jcore-plasma jcore-plasma-b" />
@@ -428,13 +434,13 @@ export default function VoicePage() {
               <circle cx="200" cy="200" r="96" className="ring ring-dash" />
             </svg>
             <div className="jcore-eye" />
-          </div>
+          </button>
         </section>
 
         <aside className="flex min-h-0 flex-col gap-4">
           <section className="panel-surface flex min-h-0 flex-1 flex-col rounded-2xl p-4">
             <p className="caption-label mb-3">Operational log</p>
-            <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 text-[13px] leading-5">
+            <div role="log" aria-label="Operational log" className="min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-1 text-[13px] leading-5">
               {log.map((line, i) => (
                 <p
                   key={i}
@@ -446,7 +452,7 @@ export default function VoicePage() {
                         : "text-[color:var(--muted)]"
                   }
                 >
-                  <span className="opacity-60">{line.who === "you" ? "YOU > " : line.who === "balvis" ? "BALVIS > " : "SYS > "}</span>
+                  <span className="font-semibold">{line.who === "you" ? "YOU > " : line.who === "balvis" ? "BALVIS > " : "SYS > "}</span>
                   {line.text}
                 </p>
               ))}
@@ -494,17 +500,20 @@ export default function VoicePage() {
         </aside>
       </div>
 
-      <footer className="relative z-10 px-5 pb-6 text-center">
+      <footer inert={!live} className="relative z-10 px-5 pb-6 text-center">
         <p className="caption-label">B.A.L.V.I.S // {PHASE_LABEL[phase]}</p>
-        <p className="mx-auto mt-2 min-h-[2.5rem] max-w-3xl text-lg leading-7">
+        <p aria-live="polite" aria-atomic="true" className="mx-auto mt-2 min-h-[2.5rem] max-w-3xl text-lg leading-7">
           {caption || HINT[phase]}
         </p>
-        {error && live && <p className="mx-auto mt-2 max-w-2xl text-sm text-[color:var(--warm)]">{error}</p>}
+        {error && live && <p role="alert" className="mx-auto mt-2 max-w-2xl text-sm text-[color:var(--warm)]">{error}</p>}
       </footer>
 
       {!live && (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-5 hud-overlay px-6 text-center">
-          <button type="button" onClick={initialize}
+          <button
+            type="button"
+            autoFocus
+            onClick={initialize}
             disabled={phase === "loading"}
             className="hud-button h-14 px-8 text-base shadow-[0_0_24px_var(--glow)]"
           >
@@ -514,7 +523,7 @@ export default function VoicePage() {
             Voice-only mode. Needs microphone and speaker access. Speech recognition runs on this computer.
           </p>
           {phase === "loading" && <p className="max-w-lg text-sm text-[color:var(--accent)]">{caption}</p>}
-          {error && <p className="max-w-lg text-sm leading-6 text-[color:var(--warm)]">{error}</p>}
+          {error && <p role="alert" className="max-w-lg text-sm leading-6 text-[color:var(--warm)]">{error}</p>}
         </div>
       )}
     </div>

@@ -138,7 +138,7 @@ function AuthPage() {
                   type="text"
                   value={name}
                   onChange={(event) => setName(event.target.value)}
-                  className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                  className="hud-field"
                   placeholder="Your name"
                   required
                 />
@@ -154,7 +154,7 @@ function AuthPage() {
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                className="hud-field"
                 placeholder="you@example.com"
                 required
               />
@@ -171,7 +171,7 @@ function AuthPage() {
                 type="password"
                 value={password}
                 onChange={(event) => setPassword(event.target.value)}
-                className="w-full rounded-[18px] border border-[color:var(--surface-border)] bg-[color:var(--accent-soft)] px-4 py-3 text-[color:var(--text)] outline-none transition focus:border-[color:var(--accent)] focus:ring-2 focus:ring-[color:var(--accent-soft)]"
+                className="hud-field"
                 placeholder="At least 12 characters"
                 required
               />
@@ -189,7 +189,7 @@ function AuthPage() {
             )}
 
             {error && (
-              <div className="rounded-[18px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700/50 dark:bg-amber-950/20 dark:text-amber-100">
+              <div role="alert" className="notice notice-danger">
                 {error}
               </div>
             )}
